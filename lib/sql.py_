@@ -1,0 +1,168 @@
+import MySQLdb
+
+def unpack(t):
+    if not t:
+        return None
+    if len(t)==1:
+        r, = t
+        return r
+    else:
+        return t
+
+def sql_escape(s):
+    return str(s).replace("'","''").replace('"','""')
+
+class Row:
+    def __init__(self,d):
+        self.d = d
+    def __getattr__(self,attr):
+        return self.d[attr]
+    def __nonzero__(self):
+        return not not self.d
+
+class IterDic:
+    def __init__(self,cursor):
+        self.c = cursor
+    def __iter__(self):
+        return self
+    def next(self):
+        r = self.c.fetchone()
+        if not r:
+            raise StopIteration
+        return Row(r)
+
+class Iter:
+    def __init__(self,cursor):
+        self.c = cursor
+    def __iter__(self):
+        return self
+    def next(self):
+        r = unpack(self.c.fetchone())
+        if not r:
+            raise StopIteration
+        return r
+
+class DB:
+    def __init__(self,db):
+        self.db = db
+        self.tables = {}
+
+        c = db.cursor()
+        c.execute('show tables')
+        while 1:
+            i = c.fetchone()
+            if not i:
+                break
+            (j,) = i
+            self.tables[j]=Table(self,j)
+        
+    def __getattr__(self,attr):
+        return self.tables[attr]
+
+    def _c(self):
+        return self.db.cursor()
+    def _cd(self):
+        return self.db.cursor(cursorclass=MySQLdb.cursors.DictCursor)
+
+    def select(self,items,tables,order=''):
+        return SelectFromN(self,items,tables,order)
+    def select1(self,items,tables,order=''):
+        return SelectFrom1(self,items,tables,order)
+    def select1opt(self,items,tables,order=''):
+        return SelectFrom1opt(self,items,tables,order)
+    def count(self,tables):
+        return SelectFrom1(self,'count(*)',tables,'')
+
+class SelectFrom(object):
+    def __init__(self,db,items,tables,order):
+        self.db =db
+        self.items = items
+        self.tables = tables
+        self.order = order
+        self._all = self.items.strip()=='*'
+    def _c(self):
+        if self._all:
+            return self.db._cd()
+        else:
+            return self.db._c()
+    def _qs(self,cond):
+        return 'select %s from %s %s %s'%(self.items,self.tables,cond,self.order)
+    def _select(self,cond):
+        raise False
+    def __iter__(self):
+        return self._select('')
+    def cond(self,stmt):
+        return self._select('%s'%stmt)
+    def where(self,stmt):
+        return self._select('where %s'%stmt)
+    def get(self,column,value):
+        return self._select('where %s="%s"' % (column,value))
+
+class SelectFromN(SelectFrom):
+    def __init__(self,db,items,tables,order):
+        super(SelectFromN,self).__init__(db,items,tables,order)
+    def _select(self,cond):
+        c = self._c()
+        c.execute(self._qs(cond))
+        if self._all:
+            return IterDic(c)
+        else:
+            return Iter(c)
+
+class SelectFrom1(SelectFrom):
+    def __init__(self,db,items,tables,order):
+        super(SelectFrom1,self).__init__(db,items,tables,order)
+    def _select(self,cond):
+        c = self._c()
+        c.execute(self._qs(cond))
+        assert c.rowcount == 1
+        if self._all:
+            return Row(c.fetchone())
+        else:
+            return unpack(c.fetchone())
+
+class SelectFrom1opt(SelectFrom):
+    def __init__(self,db,items,tables,order):
+        super(SelectFrom1opt,self).__init__(db,items,tables,order)
+    def _select(self,cond):
+        c = self._c()
+        c.execute(self._qs(cond))
+        assert c.rowcount <= 1
+        t = c.fetchone()
+        if not t:
+            return None
+        if self._all:
+            return Row(t)
+        else:
+            return unpack(t)
+
+class Table:
+    def __init__(self,db,name):
+        self.db = db
+        self.name = name
+        self.primary_key=''
+        c = db._cd()
+        c.execute('show columns from %s'%self.name)
+        while 1:
+            i = c.fetchone()
+            if not i:
+                break
+            if i['Key']=="PRI":
+                self.primary_key=i['Field']
+
+    def select(self,items='*',order=''):
+        return self.db.select(items,self.name,order)
+    def select1(self,items='*',order=''):
+        return self.db.select1(items,self.name,order)
+    def select1opt(self,items='*',order=''):
+        return self.db.select1opt(items,self.name,order)
+    def count(self):
+        return self.db.count(self.name)
+
+    def __getitem__(self,index):
+        return self.select1().get(self.primary_key,index)
+    def __iter__(self):
+        return self.select()
+    
+    def has_key(self,index):
+        return self.count().get(self.primary_key,index)>0

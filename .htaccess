@@ -1,0 +1,10 @@
+SetHandler python-program
+
+#SetHandler mod_python
+#AddHandler mod_python .py
+PythonHandler w
+PythonDebug On
+PythonPath "sys.path+['/home/wiki/lib/']"
+
+#<Files *.py>
+#</Files>

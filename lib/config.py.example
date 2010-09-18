@@ -1,0 +1,53 @@
+## debug
+debug = 1
+
+## caches
+# if client cache is older than this revision, always resend the data regardless of lastmodified revision
+# you may update this value when you rewrite invariant sections.
+global_lastmodified_rev = 811
+use_client_cache = True
+
+## subversion repository
+svn_base = ['medicalscience']
+#svn_base = ['branches','test-alpha']
+repository_path = '//home/testsvn/wiki'
+bodytxt = 'body.txt'
+
+## path
+pwd = '/home/wiki/'
+cachedir = pwd + 'cache/'
+cachedb = cachedir + 'cache.db'
+tmp_dir = pwd + 'tmp/'
+
+hostname = 'chalk'
+w_path = 'w'
+top_url = 'http://%s/w/'%hostname
+tex_url = 'http://%s/cgi/mimetex.cgi'%hostname
+
+## spam filter
+spamblock = True
+rbl_list = [
+    'niku.2ch.net',
+    'bsb.spamlookup.net',
+    'list.dsbl.org',
+    ]
+white_list_ip = [
+    '192.168.0.10',
+    '192.168.0.35',
+    ]
+black_list = [
+    '.s05.a012.ap.plala.or.jp',
+    ]
+
+## attach file
+max_attach_size = 1024*1024
+mime_map = {
+    '.css':'text/css',
+    '.txt':'text/plain;charset=utf-8',
+    '.zip':'application/zip',
+    '.gif':'image/gif',
+    '.png':'image/png',
+    '.jpg':'image/jpg',
+    '.svg':'image/svg+xml'
+    }
+

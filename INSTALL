@@ -1,0 +1,155 @@
+* Install
+
+** Requirements
+
+python 2.4 over
+mod_python
+apache2
+sqlobject
+
+
+** how to install
+
+サーバーの/home/wikiにコードをcheckout
+{{{
+cd /home
+sudo svn checkout http://example.com/svn/copilio wiki
+mkdir /var/www/w/
+sudo make setup
+}}}
+
+edit /etc/apache2/sites-enables/000-default
+{{{
+NameVirtualHost *
+ServerName ...
+<VirtualHost *>
+        ServerAdmin ...
+
+        DocumentRoot /var/www/
+        <Directory />
+                Options FollowSymLinks
+                AllowOverride None
+        </Directory>
+        <Directory /var/www/>
+                Options -ExecCGI -Indexes -FollowSymLinks -MultiViews
+                AllowOverride FileInfo
+                Order allow,deny
+                allow from all
+                # This directive allows us to have apache2's default start page
+                # in /apache2-default/, but still have / go to the right place
+                # RedirectMatch ^/$ /apache2-default/
+        </Directory>
+
+        ScriptAlias /cgi-bin/ /usr/lib/cgi-bin/
+        <Directory "/usr/lib/cgi-bin">
+                AllowOverride None
+                Options ExecCGI -MultiViews +SymLinksIfOwnerMatch
+                Order allow,deny
+                Allow from all
+        </Directory>
+
+        ErrorLog /var/log/apache2/error.log
+
+        # Possible values include: debug, info, notice, warn, error, crit,
+        # alert, emerg.
+        LogLevel warn
+
+        CustomLog /var/log/apache2/access.log combined
+        ServerSignature On
+
+    Alias /doc/ "/usr/share/doc/"
+    <Directory "/usr/share/doc/">
+        Options Indexes MultiViews FollowSymLinks
+        AllowOverride None
+        Order deny,allow
+        Deny from all
+        Allow from 127.0.0.0/255.0.0.0 ::1/128
+    </Directory>
+
+</VirtualHost>
+}}}
+
+必要なライブラリを適宜インストール
+{{{
+apt-get install python-subversion python-sqlobject libapache2-mod-python
+}}}
+他いろいろ
+
+repositoryの作成
+{{{
+sudo svnadmin create /home/wikirep
+sudo chown -R www-data:www-data wikirep
+sudo svn mkdir file:///home/wikirep/branches
+}}}
+
+repositoryの公開 (optional)
+/etc/apache2/mods-available/dav_svn.conf
+{{{
+<Location /svn>
+
+  # Uncomment this to enable the repository
+  DAV svn
+
+  # Set this to the path to your repository
+  SVNPath /home/wikirep
+  # Alternatively, use SVNParentPath if you have multiple repositories under
+  # under a single directory (/var/lib/svn/repo1, /var/lib/svn/repo2, ...).
+  # You need either SVNPath and SVNParentPath, but not both.
+  #SVNParentPath /var/lib/svn
+
+  # Access control is done at 3 levels: (1) Apache authentication, via
+  # any of several methods.  A "Basic Auth" section is commented out
+  # below.  (2) Apache <Limit> and <LimitExcept>, also commented out
+  # below.  (3) mod_authz_svn is a svn-specific authorization module
+  # which offers fine-grained read/write access control for paths
+  # within a repository.  (The first two layers are coarse-grained; you
+  # can only enable/disable access to an entire repository.)  Note that
+  # mod_authz_svn is noticeably slower than the other two layers, so if
+  # you don't need the fine-grained control, don't configure it.
+
+  Satisfy Any
+  Require valid-user
+
+  # Basic Authentication is repository-wide.  It is not secure unless
+  # you are using https.  See the 'htpasswd' command to create and
+  # manage the password file - and the documentation for the
+  # 'auth_basic' and 'authn_file' modules, which you will need for this
+  # (enable them with 'a2enmod').
+  AuthType Basic
+  AuthName "Subversion Repository"
+  AuthUserFile /etc/apache2/dav_svn.passwd
+
+  # To enable authorization via mod_authz_svn
+  AuthzSVNAccessFile /etc/apache2/dav_svn.authz
+
+  # The following three lines allow anonymous read, but make
+  # committers authenticate themselves.  It requires the 'authz_user'
+  # module (enable it with 'a2enmod').
+  #<LimitExcept GET PROPFIND OPTIONS REPORT>
+    #Require valid-user
+  #</LimitExcept>
+
+</Location>
+}}}
+
+{{{
+sudo htpasswd -c dav_svn.passwd username
+}}}
+
+dav_svn.authz
+{{{
+[/]
+your_username = rw
+
+[branches/alpha/]
+* = rw
+}}}
+
+mimetex.cgiの作成
+{{{
+sudo make mimetex
+sudo cp mimetex.cgi /usr/lib/cgi-bin/
+}}}
+
+config.pyの修正
+
