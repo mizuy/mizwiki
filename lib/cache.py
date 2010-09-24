@@ -12,9 +12,21 @@ class Cache(object):
     pass
 
   def get_cachedata(self, key, lazyeval):
-    if not self.has(key):
-      self.put(key,lazyeval())
-    return self.get(key)
+    try:
+      v = self.get(key)
+    except KeyError:
+      v = lazyeval()
+      self.put(key,v)
+    return v
+
+
+def cached(cache,notes='_'):
+  def inner(func):
+    def wrapped(*args,**kw):
+      key = str(notes)+repr(args)+repr(kw)
+      return cache.get_cachedata(key,lambda:func(*args,**kw))
+    return wrapped
+  return inner
 
 class CacheMem(Cache):
   def __init__(self):
@@ -43,7 +55,10 @@ class CacheFile(Cache):
   
   def get(self,key):
     k = self.dir_ + escapep(key)
-    r = None
+    if not self.has(key):
+      raise KeyError
+
+    r = ''
     f = open(k,'rb')
     try:
       fcntl.flock(f.fileno(), fcntl.LOCK_SH)
@@ -96,7 +111,7 @@ class CacheSQL(Cache):
     i = get_one(v)
     if i:
       return i.value
-    return None
+    raise KeyError
 
   def put(self,key,value):
     v = CacheEntry.select(CacheEntry.q.key==key)
@@ -105,4 +120,4 @@ class CacheSQL(Cache):
       i.value = value
     else:
       CacheEntry(key=key,value=value)
-  
+

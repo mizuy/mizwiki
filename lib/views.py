@@ -1,73 +1,69 @@
 # -*- coding:utf-8 mode:Python -*-
 
-from xml.sax.saxutils import quoteattr,escape
-from urllib import quote,unquote
+from xml.sax.saxutils import escape
+from urllib import quote
 import page
 import config
-from wpath import Path
 from sets import Set
 
-import wikipage
-import htmlwriter
+from htmlwriter import ListWriter
+from misc import curry,curry2
+from os import path
+import misc
+import models
 
 content_type = 'text/html;charset=utf-8'
 content_type_text = 'text/plain;charset=utf-8'
-
-keywords = 'Medicine, Medical Science, subverison, python'
-site_name = 'Medical Science : Student to Student Wiki'
-description = 'Medical Science : Student to Student Wiki'
-author = 'mizuy, Tohoku University, school of medicine'
-copyright = 'Copyright (c) 2009 mizuy. Permission is granted to copy, distribute and/or modify this document under the terms of the GNU Free Documentation License, Version 1.2 or any later version published by the Free Software Foundation; with no Invariant Sections, no Front-Cover Texts, and no Back-Cover Texts.A copy of the license is included in the section entitled "GNU Free Documentation License".'
-use_logo = False
-use_copyright_footer = True
-
-
-def get_writer(output):
-    return htmlwriter.WikiWriter(output,True)
 
 def xmldec(w):
     w.write('''<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 ''')
     #<?xml version="1.0" encoding="UTF-8"?>
 
-               
-def htmlheader(w,ri,title,nobot=False):
+def htmlheader(w,h,title,nobot=False):
+    ri = h.ri
     w.push('head')
     w.insertc('meta',**{'http-equiv':'content-type', 'content':'text/html; charset=UTF-8'})
-    w.insertc('link',rel='stylesheet', href=ri.head_link(page.style), type='text/css')
-    w.insert('title',text='%s - %s'%(title,site_name))
+    w.insertc('link',rel='stylesheet', href=ri.link('theme',path='style.css'), type='text/css')
+    w.insert('title',text='%s - %s'%(title,config.site_name))
     w.insertc('meta',**{'http-equiv':'content-language', 'content':'ja'})
     if nobot:
         w.meta('robots','noindex,nofollow')
     w.insertc('link',rel='shortcut icon', href='/favicon.ico', type="image/vnd.microsoft.icon")
-    w.meta('description',description)
-    w.meta('keywords',keywords)
+    w.meta('description',config.description)
+    w.meta('keywords',config.keywords)
     w.meta('rating','general')
-    w.meta('author',author)
-    w.meta('copyright',copyright)
-    w.insertc('link',rel='alternate', href=ri.head_link(page.atom), type='application/atom+xml', title='Atom')
+    w.meta('author',config.author)
+    w.insertc('link',rel='alternate', href=ri.link('atom'), type='application/atom+xml', title='Atom')
     w.pop()
 
-def header(w):
+def header(w,h):
+    ri = h.ri
     w.push('div',id='header')
-    if use_logo:
+    if config.use_logo:
         w.push('span',id='logo')
-        w.aimg(page.full_url(page.top),page.full_url(page.logo),'Logo',90,64)
+        w.aimg(ri.full_link('wiki_head',path='FrontPage.wiki'),ri.full_link('theme',path='logo.png'),'Logo',90,64)
         w.pop()
     w.pop()
 
-def footer(w):
+def footer(w,h):
+    ri = h.ri
     w.push('div',id='footer')
-    if use_copyright_footer:
+    if config.use_copyright_footer:
         w.push('p',cls='copyright')
-        w.text(copyright)
+        w.text('Copyright (c) 2010 tmedic.or Permission is granted to copy, distribute and/or modify this document under the terms of the GNU Free Documentation License, Version 1.2 or any later version published by the Free Software Foundation; with no Invariant Sections, no Front-Cover Texts, and no Back-Cover Texts.A copy of the license is included in the section entitled ')
+        w.a("GNU Free Documentation License",href=ri.link('wiki_head',path='GNU_Free_Documentation_License.wiki'))
+        w.text('.')
         w.pop()
     w.push('p',cls='validation')
-    w.aimg('http://validator.w3.org/check?uri=referer',page.full_url(page.valid_xhtml),'Valid XHTML 1.0 Strict',88,31)
+    w.aimg('http://validator.w3.org/check?uri=referer',
+           ri.full_link('theme',path='valid-xhtml10.png'),'Valid XHTML 1.0 Strict',88,31)
     def q(v):
         return quote(v).replace('/','%2F')
-    w.aimg('http://jigsaw.w3.org/css-validator/validator?uri=%s'%q(page.full_url(page.style)),page.full_url(page.valid_css),'Valid CSS',88,31)
-    w.aimg('http://validator.w3.org/feed/check.cgi?url=%s'%q(page.full_url(page.atom)),page.full_url(page.valid_atom),'Valid Atom 1.0',88,31)
+    w.aimg('http://jigsaw.w3.org/css-validator/validator?uri=%s'%q(ri.full_link('theme',path='style.css')),
+           ri.full_link('theme',path='valid-css.png'),'Valid CSS',88,31)
+    w.aimg('http://validator.w3.org/feed/check.cgi?url=%s'%q(ri.full_link('atom')),
+           ri.full_link('theme',path='valid-atom.png'),'Valid Atom 1.0',88,31)
     w.pop()
     w.pop()
 
@@ -76,27 +72,19 @@ def menu(w,h):
     w.push('div',id='navigator')
 
     w.text('[')
-    w.a('FrontPage',href=ri.head_link(page.FrontPage))
+    w.a('FrontPage',href=ri.link('frontpage'))
     w.text('|')
-    w.a('RecentChanges',href=ri.head_link(page.RecentChanges))
+    w.a('Sitemap',href=ri.link('sitemap'))
+    w.text('|')
+    w.a('RecentChanges',href=ri.link('recentchanges'))
     w.text(']')
     w.space()
-
-    link = {
-        'Head': ri.head_link(ri.wp.path),
-        'History':'./?cmd=history',
-        'Attach':'./?cmd=attach',
-        'Edit':'./?cmd=edit',
-        'View':".",
-        'Source':"./?cmd=viewsrc",
-        'Diff':"./?cmd=diff",
-        }
 
     g = [
         'Head,History,Attach,Edit'.split(','),
         'View,Source,Diff'.split(',')
         ]
-    mi = h.menu_items()
+    mi = h.menu_items
     for j in g:
         if Set(j).intersection(mi):
             w.text('[')
@@ -106,19 +94,19 @@ def menu(w,h):
                     if not first:
                         w.text('|')
                     first = 0
-                    w.a(i,href=link[i])
+                    w.a(i,href=h.menu_links[i])
             w.text(']')
             w.space()
             
     if config.debug:
         w.text('[')
-        w.a('Debug',href='./?cmd=debugview')
+        w.a('Debug',href='?cmd=debugview')
         w.text(']')
         w.space()
     w.text('[')
-    w.a('Wiki',href=ri.head_link(page.Wiki))
+    w.a('Wiki',href=ri.link('wiki_head',path='AboutWiki.wiki'))
     w.text('|')
-    w.a('Syntax',href=ri.head_link(page.Syntax))
+    w.a('Syntax',href=ri.link('wiki_head',path='Syntax.wiki'))
     w.text(']')
 
     w.push('form',method='get', action='http://www.google.co.jp/search')
@@ -135,116 +123,89 @@ def menu(w,h):
     
     w.pop()
 
-def pathheader(w,ri):
+def pathheader(w,h):
+    ri = h.ri
     w.push('div',id='pathinfo')
-    for i in range(len(ri.wp.path)):
+    for path,p in misc.iterdir(ri.path_info):
         w.push('span',cls='pathinfoitem')
-        w.a(ri.wp.path[i].basename(),href=ri.local_link(ri.wp.path[:i+1]))
+        w.a(p, href=ri.link('wiki_head',path=path))
         w.pop()
         w.text('/')
     w.pop()
 
     
-def content(w,ri):
-    sb = wikipage.WikiPage(ri.wp.rev(), page.SideBar)
-    if sb.exist():
-        w.push('table',border='0', id='twocolumn')
-        w.push('tr')
-        w.push('td', cls='sidebar')
-        w.push('div',id='sidebar')
-        w.write(sb.get_relative_xhtml(ri,len(ri.wp.path)))
-        w.pop()
-        w.pop()
-        w.push('td', cls='page')
-        w.push('div',id='main')
-        w.write(ri.wp.get_xhtml(ri))
-        w.pop()
-        w.pop()
-        w.pop()
-        w.pop()
-    else:
-        w.push('div', id='main')
-        w.write(ri.wp.get_xhtml(ri))
-        w.pop()
-
-def wiki_footer(w,ri):
-    attaches, children = ri.wp.get_attaches_and_children_path()
-    linkto = ri.wp.get_linkto()
-    w.push('div', cls='attaches')
-    w.text('attaches:')
-    for f in attaches:
-        w.push('span', cls='attachfile')
-        w.a(f.basename(),href=ri.local_link(f))
-        w.pop()
+def content(w,h):
+    w.push('div', id='main')
+    w.write(h.wikifile.xhtml)
     w.pop()
-    w.push('div', cls='children')
-    w.text('unlinked children:')
-    for f in children:
-        if f not in linkto:
-            w.push('span', cls='child')
-            w.link_wiki(f.basename(),href=ri.local_link(f))
+
+'''
+public templates
+@template(title,nobot)
+def hogehoge_body(w,h,parameters):
+
+hogehoge_body(w,h.parameters) -> template(title,nobot)(hogehoge_body)(w,h,parameters)
+'''
+def template(title,nobot=False):
+    def decorator(body):
+        def inner(w,h,*args,**kw):
+            ri = h.ri
+            xmldec(w)
+            w.push('html',**{'xmlns':'http://www.w3.org/1999/xhtml', 'xml:lang':'ja'})
+            htmlheader(w,h,title+': '+h.title,nobot)
+            w.push('body')
+            
+            header(w,h)
+            menu(w,h)
+    
+            w.hr_full()
+            w.push('div',id='body')
+            body(w,h,*args, **kw)
             w.pop()
-    w.pop()
-
-def wiki_footer2(w,ri,wp):
-    attaches, children = wp.get_attaches_and_children()
-    w.push('div', cls='attaches')
-    w.text('attaches:')
-    for f in attaches:
-        w.push('span', cls='attachfile')
-        w.a(f.path.basename(),href=ri.rev_link(f))
-        w.pop()
-    w.pop()
-    w.push('div', cls='children')
-    w.text('children:')
-    for f in children:
-        w.push('span', cls='child')
-        w.a(f.path.basename(),href=ri.rev_link(f),cls='wiki')
-        w.pop()
-    w.pop()
-
-def template(w,h,title,nobot,body):
-    ri = h.ri
-    xmldec(w)
-    w.push('html',**{'xmlns':'http://www.w3.org/1999/xhtml', 'xml:lang':'ja'})
-    htmlheader(w,ri,title,nobot)
-    w.push('body')
-
-    header(w)
-    menu(w,h)
+            w.hr_full()
     
-    w.hr_full()
-    w.push('div',id='body')
-    body(w)
-    w.pop()
-    w.hr_full()
-    
-    footer(w)
+            footer(w,h)
 
-    w.pop()
-    w.pop()
+            w.pop()
+            w.pop()
+        return inner
+    return decorator
 
-def locked_body(w,ri):
-    pathheader(w,ri)
+@curry2
+@template('Locked Page',True)
+def locked_body(w,h):
+    pathheader(w,h)
     w.hr()
     w.text('このページの編集はロックされています。')
 
-def view_body(w,ri):
-    pathheader(w,ri)
+@curry2
+@template('')
+def view_head_body(w,h):
+    pathheader(w,h)
     w.hr()
-    if not ri.headmode:
-        lmr = ri.wp.lastmodified().rev()
-        w.textl('過去Revision表示モード。この内容は最新ではない可能性があります。')
-        w.link_wiki('最新版を見る',ri.head_link(ri.path))
-        w.hr()
-        navi(w,ri)
-        w.hr()
-    content(w,ri)
+    content(w,h)
     w.hr()
-    wiki_footer(w,ri)
 
-def attach_body(w,ri,message,question):
-    pathheader(w,ri)
+@curry2
+@template('Old File',True)
+def view_old_body(w,h):
+    ri = h.ri
+    pathheader(w,h)
+    w.hr()
+    lmr = h.wikifile.lastmodified.revno
+    w.textl('過去Revision表示モード。この内容は最新ではない可能性があります。')
+    w.link_wiki('最新版を見る',ri.link('wiki_head',path=ri.path_info))
+    w.hr()
+    navi(w,h)
+    w.hr()
+    content(w,h)
+    w.hr()
+
+@curry2
+@template('Upload File')
+def attach_body(w,h,message,question):
+    ri = h.ri
+    pathheader(w,h)
     w.hr()
     w.push('form',method='post', action='.', enctype='multipart/form-data')
     
@@ -258,25 +219,34 @@ def attach_body(w,ri,message,question):
     w.pop()
     w.insert('p',message)
 
-def uploaded_body(w,ri,success,message):
-    pathheader(w,ri)
+@curry2
+@template('Uploaded',True)
+def uploaded_body(w,h,success,message):
+    ri = h.ri
+    pathheader(w,h)
     w.hr()
     if success:
         w.insert('p','upload成功')
     else:
         w.insert('p','upload失敗')
         w.insert('p',message)
-    w.insert('p','Path: %s'%ri.wp.path.displayname())
+    w.insert('p','Path: %s'%h.wikifile.path)
     w.a('ページへ行く',href='.')
 
-def notfound_body(w,ri):
-    pathheader(w,ri)
+@curry2
+@template('Not Found',True)
+def notfound_body(w,h):
+    ri = h.ri
+    pathheader(w,h)
     w.hr()
     w.insert('p','このRevisionにこのページは存在しません。')
-    w.a('現在のページを見にいく or 編集する',href=ri.head_link(ri.wp.path))
+    w.a('現在のページを見にいく or 編集する',href=ri.link('wiki_head',path=h.wikifile.path))
 
-def commited_body(w,ri,success,base_rev,commited_rev):
-    pathheader(w,ri)
+@curry2
+@template('Commited',True)
+def commited_body(w,h,success,base_rev,commited_rev):
+    ri = h.ri
+    pathheader(w,h)
     w.hr()
     if success:
         w.insert('p','commit成功')
@@ -284,7 +254,7 @@ def commited_body(w,ri,success,base_rev,commited_rev):
     else:
         w.insert('p','commit失敗')
     w.push('p')
-    w.text('Path: %s'%ri.wp.path.displayname())
+    w.text('Path: %s'%h.wikifile.path)
     w.br()
     w.text('Base Revision: %s' % base_rev)
     w.br()
@@ -292,10 +262,13 @@ def commited_body(w,ri,success,base_rev,commited_rev):
     w.pop()
     w.a('ページへ行く',href='.')
 
-def edit_comment_body(w,ri,comment_no,author,comment_text,message,question):
-    pathheader(w,ri)
+@curry2
+@template('Post Comment',True)
+def edit_comment_body(w,h,comment_no,author,comment_text,message,question):
+    ri = h.ri
+    pathheader(w,h)
     w.hr()
-    w.insert('p','Current Revision: %s' % ri.wp.rev())
+    w.insert('p','Current Revision: %s' % h.wikifile.revno)
     for m in message.splitlines():
         w.text(m)
         w.br()
@@ -314,18 +287,21 @@ def edit_comment_body(w,ri,comment_no,author,comment_text,message,question):
     w.pop()
     w.pop()
     
-def edit_body(w,ri,preview_text,wiki_text,commitmsg_text,message,paraedit,question):
-    pathheader(w,ri)
+@curry2
+@template('Edit',True)
+def edit_body(w,h,preview_text,wiki_text,commitmsg_text,message,paraedit,question):
+    ri = h.ri
+    pathheader(w,h)
     w.hr()
-    w.insert('p','Current Revision: %s' % ri.wp.rev())
+    w.insert('p','Current Revision: %s' % h.wikifile.revno)
     for m in message.splitlines():
         w.text(m)
         w.br()
     w.hr()
-    w.push('form',method='post', action='.', cls='editform')
+    w.push('form',method='post', action=h.ri.path_info, cls='editform')
     w.push('div')
     w.insertc('input',type='hidden', name='cmd', value='commit')
-    w.insertc('input',type='hidden', name='base_rev', value=ri.wp.rev())
+    w.insertc('input',type='hidden', name='base_rev', value=h.wikifile.revno)
     if paraedit:
         paraedit_from,paraedit_to = paraedit
         w.insertc('input',type='hidden', name='paraedit_from', value=str(paraedit_from))
@@ -344,10 +320,10 @@ def edit_body(w,ri,preview_text,wiki_text,commitmsg_text,message,paraedit,questi
 
     w.push('p')
     w.text('Wikiの文法は')
-    w.a('Wiki/Syntax',href=ri.head_link(page.Syntax),cls='wiki')
+    w.a('Wiki/Syntax',href=ri.link('wiki_head',path='Syntax.wiki'),cls='wiki')
     w.text('を参照してください。')
     w.text('大きな編集をする場合は')
-    w.a('Wiki/編集ガイドライン',href=ri.head_link(page.Guideline),cls='wiki')
+    w.a('Wiki/編集ガイドライン',href=ri.link('wiki_head',path='Guideline.wiki'),cls='wiki')
     w.text('にも目を通して下さい。')
     w.pop()
 
@@ -357,22 +333,23 @@ def edit_body(w,ri,preview_text,wiki_text,commitmsg_text,message,paraedit,questi
         w.write(preview_text)
         w.pop()
 
-def navi(w,ri):
-    w.link_wiki('通常の表示モードに戻る',ri.head_link(ri.path))
+def navi(w,h):
+    ri = h.ri
+    w.link_wiki('通常の表示モードに戻る',ri.link('wiki_head',path=ri.path_info))
     w.hr()
     
     w.text('他Revisionナビゲーション:')
     
-    lw = htmlwriter.ListWriter(w)
+    lw = ListWriter(w)
     lw.move(1)
     w.text('Head')
     lw.move(2)
-    rp = ri.rev_link(ri.wp)
-    w.link_wiki('%s'%ri.wp.rev(),href=rp)
+    rp = ri.link('wiki_rev',rev=h.wikifile.revno,path=h.wikifile.path)
+    w.link_wiki('%s'%h.wikifile.revno,href=rp)
     w.text(', ')
     w.a('diff',href=rp+'?cmd=diff')
 
-    lm = ri.wp.lastmodified()
+    lm = h.wikifile.lastmodified
     lw.move(1)
     w.text('Old Modified Revision:')
     w.br()
@@ -380,24 +357,24 @@ def navi(w,ri):
         if not lm:
             break
         lw.move(2)
-        rp = ri.rev_link(lm)
-        w.link_wiki('%s'%lm.rev(),href=rp)
+        rp = ri.link('wiki_rev',rev=lm.revno,path=lm.path)
+        w.link_wiki('%s'%lm.revno,href=rp)
         w.text(', ')
         w.a('diff',href=rp+'?cmd=diff')
-        lm = lm.previous()
+        lm = lm.previous
     
     lw.move(1)
     w.text('Old Revisions:')
     w.br()
-    rev = ri.wp.rev()
+    rev = h.wikifile.revno
     lw.move(2)
-    w.text(str(ri.wp.rev()))
+    w.text(str(h.wikifile.revno))
     for i in range(3):
         r = rev-1-i
-        rr = ri.wp.switch_rev(r)
-        if not rr.exist():
+        rr = h.wikifile.switch_rev(r)
+        if not rr.exist:
             break
-        rp = ri.rev_link(rr)
+        rp = ri.link('wiki_rev',rev=rr.revno,path=rr.path)
         lw.move(2)
         w.link_wiki('%s'%r,href=rp)
         w.text(', ')
@@ -405,15 +382,18 @@ def navi(w,ri):
 
     lw.finish()
 
-def diff_body(w,ri,title,ffrom,fto,linediffs):
-    pathheader(w,ri)
+@curry2
+@template('Diff')
+def diff_body(w,h,title,ffrom,fto,linediffs):
+    ri = h.ri
+    pathheader(w,h)
     w.hr()
-    navi(w,ri)
+    navi(w,h)
     w.hr()
     w.push('div',id='main')
     w.push('div',cls='diff_text')
     w.insert('h1',title)
-    if fto.changed():
+    if fto.changed:
         for tag,l in linediffs:
             if tag=='del':
                 w.insert('span',l,cls='diff_del')
@@ -429,27 +409,24 @@ def diff_body(w,ri,title,ffrom,fto,linediffs):
     w.pop()
     w.pop()
     w.hr()
-    if fto:
-        w.text('To:')
-        wiki_footer2(w,ri,fto)
-    if ffrom:
-        w.text('From:')
-        wiki_footer2(w,ri,ffrom)
-            
-def history_body(w,ri,offset):
-    pathheader(w,ri)
+
+@curry2
+@template('History')
+def history_body(w,h,offset):
+    ri = h.ri
+    pathheader(w,h)
     w.hr()
     page_size = 25
     w.push('div',id='main')
-    w.insert('h1','History of %s'%ri.wp.path.displayname())
+    w.insert('h1','History of %s'%h.wikifile.path)
 
     w.push('span')
-    w.a('younger',href='./?cmd=history&offset=%s'%max(0,offset-page_size))
+    w.a('younger',href='?cmd=history&offset=%s'%max(0,offset-page_size))
     w.text('|')
-    w.a('older',href='./?cmd=history&offset=%s'%(offset+page_size))
+    w.a('older',href='?cmd=history&offset=%s'%(offset+page_size))
     w.pop()
 
-    for index, hwp in enumerate(ri.wp.history()):
+    for index, hwp in enumerate(h.wikifile.history()):
         if offset < 0:
             break
         if index < offset:
@@ -457,9 +434,9 @@ def history_body(w,ri,offset):
         if offset + page_size <= index:
             break
     
-        hrev = hwp.rev()
-        datetxt = hwp.svn_root().date().ctime()
-        rp = ri.rev_link(hwp)
+        hrev = hwp.revno
+        datetxt = hwp.revision.date.ctime()
+        rp = ri.link('wiki_rev',rev=hwp.revno,path=hwp.path)
 
         w.push('h2')
         w.a('Revision %s'%hrev,href=rp)
@@ -467,26 +444,28 @@ def history_body(w,ri,offset):
         w.a('diff',href=rp+'?cmd=diff')
         w.text(', '+datetxt)
         w.pop()
-        
-        if hwp.has_ndiff():
-            nd = hwp.get_ndiff()
+        nd = hwp.ndiff
+        if None!=nd:
             if nd:
                 format_ndiff(w,nd)
             else:
                 w.insert('p','no changes')
     w.pop()
 
-def recent_body(w,ri,offset):
-    pathheader(w,ri)
+@curry2
+@template('RecentChanges')
+def recent_body(w,h,offset):
+    ri = h.ri
+    pathheader(w,h)
     w.hr()
     page_size = 25
     w.push('div',id='main')
     w.insert('h1','Recent Changes')
 
     w.push('span')
-    w.a('younger',href='./?offset=%s'%max(0,offset-page_size))
+    w.a('younger',href='?offset=%s'%max(0,offset-page_size))
     w.text('|')
-    w.a('older',href='./?offset=%s'%(offset+page_size))
+    w.a('older',href='?offset=%s'%(offset+page_size))
     w.pop()
 
     for ind in range(page_size):
@@ -494,13 +473,13 @@ def recent_body(w,ri,offset):
         if rev<=0:
             break
 
-        datetxt = wikipage.wsvn.get_root(rev).date().ctime()
+        datetxt = h.rev_date(rev).ctime()
         rtitle = 'Revision %s, %s' % (rev,datetxt)
         w.insert('h2',rtitle)
-        for i,(path,hwp,kind) in enumerate(wikipage.get_changesets(rev)):
+        for i,(internal_path,hwp,kind) in enumerate(h.changesets(rev)):
             if hwp:
-                fname = hwp.path.displayname()
-                qa = ri.rev_link(hwp)
+                fname = hwp.path
+                qa = ri.link('wiki_rev',rev=rev,path=hwp.path)
                 dl = qa + '?cmd=diff'
                 w.push('h3')
                 w.text(kind+': ')
@@ -508,8 +487,8 @@ def recent_body(w,ri,offset):
                 w.text(', ')
                 w.a('diff',href=dl)
                 w.pop()
-                if hwp.has_ndiff():
-                    nd = hwp.get_ndiff()
+                nd = hwp.ndiff
+                if None!=nd:
                     if nd:
                         format_ndiff(w,nd)
                     else:
@@ -517,51 +496,39 @@ def recent_body(w,ri,offset):
             else:
                 w.push('h3')
                 w.text(kind+': ')
-                w.text(path)
+                w.text(internal_path)
                 w.pop()
     w.pop()
 
-def sitemap_body(w,ri):
-    pathheader(w,ri)
+@curry2
+@template('Sitemap')
+def sitemap_body(w,h):
+    ri = h.ri
+    pathheader(w,h)
     w.hr()
     w.push('div',id='main')
     w.insert('h1','SiteMap')
 
-    rev = ri.svn_head().last_paths_changed_rev()
+    rev = ri.head.last_paths_changed.revno
+    lw = ListWriter(w)
 
-    rootf = wikipage.wsvn.get_revfile(rev,page.top)
-
-    lw = htmlwriter.ListWriter(w)
-
-    def w_node(node,level):
-        for c in node.ls():
-            ci = node.child(c)
-            path = wikipage.wsvn.get_path(ci)
-            if ci.isdir():
-                lw.move(level+1)
-                w.link_wiki(c,href=ri.head_link(path))
-                w_node(ci,level+1)
-
-    w_node(rootf,0)
+    for wp, level in h.sitemap():
+        lw.move(level+1)
+        w.link_wiki(wp.path, href=ri.link('wiki_head',path=wp.path))
 
     w.pop()
 
-def sitemaptxt(w,ri):
-    rev = ri.svn_head().last_paths_changed_rev()
-    rootf = wikipage.wsvn.get_revfile(rev,page.top)
+@curry2
+def sitemaptxt(w,h):
+    ri = h.ri
 
-    def w_node(node,level):
-        for c in node.ls():
-            ci = node.child(c)
-            path = wikipage.wsvn.get_path(ci)
-            if ci.isdir():
-                w.text(page.full_url(path))
-                w.write('\n')
-                w_node(ci,level+1)
+    for wp,level in h.sitemap():
+        w.text(ri.full_link('wiki_head',path=wp.path))
+        w.write('\n')
 
-    w_node(rootf,0)
-
-def atom(w,ri):
+@curry2
+def atom(w,h):
+    ri = h.ri
     import datetime, md5
     import utils.uuid as uuid
     def getid(s):
@@ -571,33 +538,33 @@ def atom(w,ri):
     w.writel('<?xml version="1.0" encoding="utf-8"?>')
     w.push('feed',**{'xmlns':'http://www.w3.org/2005/Atom', 'xml:lang':'ja'})
     w.insert('title',config.hostname)
-    w.insert('subtitle',site_name)
+    w.insert('subtitle',config.site_name)
     w.insert('id','urn:uuid:'+getid(config.top_url+'rss'))
-    w.insert('updated',ri.svn_head().date().isoformat()+'Z')
+    w.insert('updated',ri.head.date.isoformat()+'Z')
     w.insertc('link',href=config.top_url)
-    w.insertc('link',rel='self', href=page.full_url(page.atom))
+    w.insertc('link',rel='self', href=ri.full_link('atom'))
     w.push('author')
-    w.insert('name',author)
+    w.insert('name',config.author)
     w.pop()
     for ind in range(page_size):
         rev = ri.head_rev-ind
         if rev <= 0:
             break
-        for i,(path,hwp,kind) in enumerate(wikipage.get_changesets(rev)):
+        for i,(internal_path,hwp,kind) in enumerate(h.changesets(rev)):
             if not hwp:
                 continue
-            rurl = ri.full_rev_link(hwp)
+            rurl = ri.full_link('wiki_rev',rev=rev, path=path)
             title = 'Revision %s: %s: %s' % (rev,kind,hwp.path)
-            pdate = hwp.svn_root().date()
+            pdate = hwp.revision.date
 
-            qa = ri.rev_link(hwp)
+            qa = ri.link('wiki_rev',rev=rev, path=path)
             w.push('entry')
             w.insert('title',title,type='text')
             w.insert('id','urn:uuid:'+getid(rurl))
             w.insert('updated',pdate.isoformat()+'Z')
             w.insertc('link',href=rurl)
 
-            nd = hwp.get_ndiff()
+            nd = hwp.ndiff
             if nd:
                 w.push('content',type='xhtml')
                 w.push('div',xmlns='http://www.w3.org/1999/xhtml')

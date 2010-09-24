@@ -4,6 +4,6 @@ import config
 import sqlobject as so
 so.sqlhub.processConnection = so.connectionForURI('sqlite:' + config.cachedb)
 
-import handler as h
+import mapper
 def handler(req):
-  return h.handler(req)
+  return mapper.start(req)

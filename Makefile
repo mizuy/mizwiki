@@ -1,5 +1,8 @@
-restart: clearcache
-	/etc/init.d/apache2 restart
+APACHE = /opt/local/apache2/bin/apachectl
+## $(APACHE) = /etc/init.d/apache2
+
+restart:
+	$(APACHE) restart
 
 clearcache:
 	rm -rf cache

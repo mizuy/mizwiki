@@ -1,41 +1,52 @@
+# -*- coding:utf-8 mode:Python -*-
+
+import sys,os
+from os import path
+
 ## debug
 debug = 1
+editable = True
 
 ## caches
 # if client cache is older than this revision, always resend the data regardless of lastmodified revision
 # you may update this value when you rewrite invariant sections.
-global_lastmodified_rev = 811
-use_client_cache = True
+global_lastmodified_date = None
+use_client_cache = False
 
 ## subversion repository
-svn_base = ['medicalscience']
-#svn_base = ['branches','test-alpha']
-repository_path = '//home/testsvn/wiki'
+svn_base = 'private'
+repository_path = '/Users/mizuy/repos_wikicontent'
 bodytxt = 'body.txt'
 
 ## path
-pwd = '/home/wiki/'
-cachedir = pwd + 'cache/'
-cachedb = cachedir + 'cache.db'
-tmp_dir = pwd + 'tmp/'
+pwd = path.abspath(path.join(path.dirname(__file__),'..'))
+cachedir = path.join(pwd,'cache/')
+cachedb = path.join(cachedir,'cache.db')
+tmp_dir = path.join(pwd,'tmp/')
 
-hostname = 'chalk'
+hostname = 'localhost'
 w_path = 'w'
 top_url = 'http://%s/w/'%hostname
 tex_url = 'http://%s/cgi/mimetex.cgi'%hostname
 
+def full_url(p):
+    return top_url.rstrip('/') + '/' + path.normpath(p).strip('/')
+
 ## spam filter
-spamblock = True
+spamblock = False
 rbl_list = [
     'niku.2ch.net',
     'bsb.spamlookup.net',
     'list.dsbl.org',
     ]
-white_list_ip = [
+whitelist_ip = [
+    '0::1',
+    '::1',
+    '127.0.0.1',
     '192.168.0.10',
     '192.168.0.35',
     ]
-black_list = [
+blacklist = [
     '.s05.a012.ap.plala.or.jp',
     ]
 
@@ -51,3 +62,11 @@ mime_map = {
     '.svg':'image/svg+xml'
     }
 
+
+
+site_name = 'Medical Science : Student to Student Wiki'
+description = 'Medical Science : Student to Student Wiki'
+keywords = 'Medicine, Medical Science, subverison, python'
+author = 'mizuy, Tohoku University, school of medicine'
+use_logo = False
+use_copyright_footer = True

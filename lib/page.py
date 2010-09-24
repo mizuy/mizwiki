@@ -1,33 +1,22 @@
 # -*- coding:utf-8 mode:Python -*-
 
-import wpath,config
-Path = wpath.Path
+from os import path
 
-FrontPage = Path('FrontPage/')
-RecentChanges = Path('RecentChanges/')
-Sitemap = Path('Sitemap/')
-SitemapText = Path('Sitemap/txt/')
-SideBar = Path('SideBar/')
-top = Path()
+def _p(a):
+    path.normpath(a)
 
-Wiki = Path('Wiki/')
-Syntax = Path('Wiki/Syntax/')
-Guideline = Path('Wiki/編集ガイドライン/')
+FrontPage = _p('FrontPage/')
+SideBar = _p('SideBar/')
+top = _p('')
 
-logo = Path('theme/logo.png')
-style = Path('theme/style.css')
-style_igb = Path('theme/style_igb.css')
-atom = Path('RecentChanges/atom.xml')
-valid_atom = Path('theme/valid-atom.png')
-valid_xhtml = Path('theme/valid-xhtml10.png')
-valid_css = Path('theme/valid-css.png')
+Wiki = _p('Wiki/')
+Syntax = _p('Wiki/Syntax/')
+Guideline = _p('Wiki/編集ガイドライン/')
 
-DB = Path('DB/')
-m = Path('DB/m/')
-t = Path('DB/t/')
-
-def full_url(p):
-    return config.top_url.rstrip('/') + '/' + str(p)
+Atom = 'RecentChanges/atom.xml'
+RecentChanges = 'RecentChanges'
+Sitemap = 'sitemap'
+SitemapText = 'sitemap.txt'
 
 locked_pages = [
     SideBar,

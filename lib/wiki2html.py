@@ -5,7 +5,7 @@ from cStringIO import StringIO
 from urllib import quote,urlencode
 
 import re, string
-from wpath import split,join,Path
+from os import path
 
 import wikiparser, htmlwriter
 import plugin_contents as contents
@@ -17,12 +17,6 @@ import md5
 class ConvertInterface(object):
     def page_exist(self,path):
         return False
-
-    def get_wiki_link(self,path):
-        return Path()
-
-    def get_wikisrc(self,path):
-        return None
 
 def trunc_int(minimum,maximum,value):
     assert minimum <= maximum
@@ -172,8 +166,8 @@ def pre_convert_wiki(indata):
         wl(l)
     return outf.getvalue()
 
-def wiki_to_xhtml(ci,source):
-    wc = WikiConverter(ci)
+def wiki_to_xhtml(path,ci,source):
+    wc = WikiConverter(path,ci)
     wikiparser.parse(wc,source)
     return wc.outputs
 
@@ -186,8 +180,10 @@ re_text = re.compile(r'''
 ''',re.VERBOSE)
 
 class WikiConverter(wikiparser.DocumentInterface):
-    def __init__(self,ci):
+    def __init__(self,current_path,ci):
+        self.current_path = path.normpath(current_path)
         self.ci = ci
+
         self.buff = StringIO()
         self.w = htmlwriter.WikiWriter(self.buff)
         self.fn_stack = [self.w]
@@ -202,6 +198,9 @@ class WikiConverter(wikiparser.DocumentInterface):
         self.lw = None
 
         self.section_count = 0
+
+    def get_wiki_link(self, path):
+        return path.normpath(path.relpath(path, self.current_path))
 
     def wiki_link(self,label,wikiname,aname=''):
         if label:
@@ -219,9 +218,9 @@ class WikiConverter(wikiparser.DocumentInterface):
             self.w.link_wikinotfound(label,url+aname)
 
     def _makelabel(self,wikiname):
-        parts = split(wikiname.replace(' ','_'))
+        parts = path.split(wikiname.replace(' ','_'))
         isdir = parts[-1] in ['.','..'] or '.' not in parts[-1]
-        path = Path.by_parts(parts,isdir)
+        path = os.join(parts)
 
         current = self.ci.get_path()
 
@@ -545,6 +544,5 @@ def plugin_img(w, params, link_url=None):
 
 if __name__=='__main__':
     import sys
-    ci = ConvertInterface()
-    print(wiki_to_xhtml(ci,sys.stdin.read()))
+    print(wiki_to_xhtml(ConvertInterface(),sys.stdin.read()))
 
