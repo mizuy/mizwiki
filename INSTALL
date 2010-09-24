@@ -7,18 +7,39 @@ mod_python
 apache2
 sqlobject
 
-
 ** how to install
 
-サーバーの/home/wikiにコードをcheckout
+必要なライブラリを適宜インストール
 {{{
-cd /home
-sudo svn checkout http://example.com/svn/copilio wiki
-mkdir /var/www/w/
+apt-get install python-subversion python-sqlobject libapache2-mod-python
+}}}
+他いろいろ
+
+サーバーの/home/wikiにコードをcheckout
+.htaccessのPythonPathにlibのあるフォルダのフルパスを追加する
+{{{
+cd
+git clone git@github.com:mizuy/mizwiki.git mizwiki
+cd mizwiki
+nano .htaccess
 sudo make setup
 }}}
+/var/www/w/にインストールされる。
 
-edit /etc/apache2/sites-enables/000-default
+orepositoryの作成
+{{{
+sudo svnadmin create /home/wikirep
+sudo chown -R www-data:www-data wikirep
+sudo svn mkdir file:///home/wikirep/branches
+}}}
+lib/config.pyに設定
+{{{
+svn_base = 'branches'
+repository_path = '/home/wikirep'
+}}}
+
+apacheのhttp.confを編集。
+debianでは /etc/apache2/sites-enables/000-default
 {{{
 NameVirtualHost *
 ServerName ...
@@ -56,33 +77,11 @@ ServerName ...
 
         CustomLog /var/log/apache2/access.log combined
         ServerSignature On
-
-    Alias /doc/ "/usr/share/doc/"
-    <Directory "/usr/share/doc/">
-        Options Indexes MultiViews FollowSymLinks
-        AllowOverride None
-        Order deny,allow
-        Deny from all
-        Allow from 127.0.0.0/255.0.0.0 ::1/128
-    </Directory>
-
 </VirtualHost>
 }}}
 
-必要なライブラリを適宜インストール
-{{{
-apt-get install python-subversion python-sqlobject libapache2-mod-python
-}}}
-他いろいろ
 
-repositoryの作成
-{{{
-sudo svnadmin create /home/wikirep
-sudo chown -R www-data:www-data wikirep
-sudo svn mkdir file:///home/wikirep/branches
-}}}
-
-repositoryの公開 (optional)
+**　repositoryの公開 (optional)
 /etc/apache2/mods-available/dav_svn.conf
 {{{
 <Location /svn>
@@ -151,9 +150,6 @@ sudo make mimetex
 sudo cp mimetex.cgi /usr/lib/cgi-bin/
 }}}
 
-config.pyの修正
-
-
 
 ** for Mac (with MacPorts)
 
@@ -166,8 +162,6 @@ sudo easy_install-2.6 -U sqlobject
 に
 LoadModule python_module modules/mod_python.so
 追加
-
-
 
 ** How to Install python binding for virtual env
 portでpython bindingをみにいく。
