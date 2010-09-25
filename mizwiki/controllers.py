@@ -2,6 +2,7 @@
 from werkzeug import exceptions
 
 from cStringIO import StringIO
+import os
 from os import path
 import re
 from sets import Set
@@ -385,13 +386,21 @@ class ControllerAtom(ControllerRecentChanges):
         self.escape_if_clientcache(True)
         return self.http_write('application/atom+xml', views.atom())
 
-class ControllerTheme(Controller):
-    def __init__(self, ri, path):
-        super(ControllerTheme,self).__init__(ri)
-        self.path = path
+class ControllerFile(Controller):
+    def __init__(self, ri, relative_path):
+        super(ControllerFile,self).__init__(ri)
+        self.rpath = relative_path
     def view(self):
-        ext = path.splitext(self.path)[1]
+        ext = path.splitext(self.rpath)[1]
         if not ext:
             raise exceptions.Forbidden
-        f = open(path.join(path.abspath(path.dirname(__file__)),'theme',self.path), 'r')
+        f = open(path.join(path.abspath(path.dirname(__file__)),self.rpath), 'r')
         return self.http_file(config.mime_map[ext],f)
+
+class ControllerTheme(ControllerFile):
+    def __init__(self, ri, path):
+        super(ControllerTheme,self).__init__(ri, os.path.join('theme',path))
+
+class ControllerFavicon(ControllerFile):
+    def __init__(self, ri):
+        super(ControllerFavicon,self).__init__(ri,'favicon.ico')

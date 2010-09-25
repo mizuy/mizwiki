@@ -13,8 +13,8 @@ from mizwiki.requestinfo import RequestInfo
 re_invalidchars = re.compile(r'[^\w_./+\-]',re.U)
 
 mapper = urlmap.UrlMap()
-mapper.add_rule('theme', controllers.ControllerTheme,
-                '^theme/(.+)$', "theme/%s", ["path"])
+mapper.add_rule('favicon.ico', controllers.ControllerFavicon, '^favicon.ico$', "%s")
+mapper.add_rule('theme', controllers.ControllerTheme, '^theme/(.+)$', "theme/%s", ["path"])
 mapper.add_rule('recentchanges', controllers.ControllerRecentChanges, 'RecentChanges$')
 mapper.add_rule('atom', controllers.ControllerAtom, 'RecentChanges/atom.xml$')
 mapper.add_rule('sitemap', controllers.ControllerSitemap, 'sitemap$')

@@ -5,7 +5,6 @@ PEP 333
 Python Web Server Gateway Interface v1.0
 http://www.python.org/dev/peps/pep-0333/
 
-
 GRAHAM DUMPLETON(mod_wsgi) blog: Python 3.0 support in mod_wsgi to be disabled.
 http://blog.dscpl.com.au/2009/04/python-30-support-in-modwsgi-to-be.html
 
@@ -59,4 +58,3 @@ Simple Rule:
 Note:
 1. python global variables are initialized by a process, and used concurrently by multiple-threads at the same time.
 2. if you use thread local to store variables-per-a-request, you must properly clear the local when application returned. application must be reentrantable.
-

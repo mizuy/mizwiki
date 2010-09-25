@@ -2,3 +2,7 @@ cache
 env
 test/testrep
 mizwiki/config.py
+\#*#
+\.#*
+log
+environ

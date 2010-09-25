@@ -6,7 +6,7 @@ import rfc822, datetime
 from os import path
 
 from mizwiki.hostvalidator import HostValidator
-from mizwiki import config, misc, svnrep, log
+from mizwiki import config, misc, svnrep
 
 class RequestInfo:
     def __repr__(self):
@@ -22,16 +22,23 @@ class RequestInfo:
         self.head = self.repo.youngest
         self.head_rev = self.head.revno
 
+        "path info"
+        self.path_info = path_info
+        self.url_for = url_for
+
+        self._logger = request.environ.get('wsgi.errors')
+
         "host validation"
         self._ip = self.req.remote_addr
         self._v = HostValidator(config.rbl_list, 
                                 config.whitelist_ip,
                                 config.blacklist,
-                                config.spamblock)
+                                config.spamblock,
+                                self.log_debug)
 
-        "path info"
-        self.path_info = path_info
-        self.url_for = url_for
+
+        self.log_debug('hgoehoge')
+        self.log_debug('%s'%self.is_spam)
 
     def full_link(self, name, **variables):
         return config.full_url(self.url_for(name, **variables))
@@ -102,4 +109,5 @@ class RequestInfo:
         return self.fs.has_key(name)
 
     def log_debug(self, msg):
-        log.log(msg)
+        if self._logger:
+            self._logger.write(msg+'\n')
