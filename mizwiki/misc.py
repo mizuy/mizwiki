@@ -1,12 +1,10 @@
 # -*- coding:utf-8 mode:Python -*-
 
-import string, os
+import string, os, re, difflib, itertools
 import popen2 as _popen2, tempfile as _tempfile
-import config, re
 from os import path
 
-import difflib
-import itertools
+from mizwiki import config
 
 def relpath(to, start):
     s = path.normpath(start).strip('/').split('/')

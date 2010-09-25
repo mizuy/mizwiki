@@ -3,16 +3,13 @@
 #import io
 from cStringIO import StringIO
 from urllib import quote,urlencode
-
 import re, string
 from os import path
-
-import wikiparser, htmlwriter
-import plugin_contents as contents
-import config
-
 import md5
 #import hashlib
+
+from mizwiki import wikiparser, htmlwriter, config
+import mizwiki.plugin_contents as contents
 
 class ConvertInterface(object):
     def page_exist(self,path):

@@ -1,6 +1,7 @@
 import socket
 
-from misc import memorize
+from mizwiki.misc import memorize
+from mizwiki.log import log
 
 def is_in_rbl(ip, rbl_domain):
     '''
@@ -19,7 +20,7 @@ def is_in_rbl(ip, rbl_domain):
     return addr
 
 class HostValidator(object):
-    def __init__(self, rbl, whitelist, blacklist, enable_spamblock, logger=None):
+    def __init__(self, rbl, whitelist, blacklist, enable_spamblock):
         '''
         rbl: host ip/domains of RBL
         whitelist: host ips for which allow
@@ -30,7 +31,6 @@ class HostValidator(object):
         self._whitelist = whitelist
         self._blacklist = blacklist
         self._spamblock = enable_spamblock
-        self._logger = logger or (lambda x:None)
     
     @memorize
     def _is_in_whitelist(self, ip):
@@ -60,34 +60,34 @@ class HostValidator(object):
     # if spam, rejest anyway
     def is_spam(self, ip):
         if not self._spamblock:
-            self._logger('is_spam(allow): spam block is disabled')
+            log('is_spam(allow): spam block is disabled')
             return False
         if self._is_in__whitelist(ip):
-            self._logger('is_spam(allow): ip is in whitelist: ip = %s'%ip)
+            log('is_spam(allow): ip is in whitelist: ip = %s'%ip)
             return False
         if self._is_in_rbl(ip):
-            self._logger('is_spam(reject): ip is in rbl: ip = %s'%ip)
+            log('is_spam(reject): ip is in rbl: ip = %s'%ip)
             return True
         if self._is_in_blacklist(ip):
             h = self._hostname()
-            self._logger('is_spam(reject): ip is in blacklist: ip=%s hostname=%s'%(ip,self._hostname()))
+            log('is_spam(reject): ip is in blacklist: ip=%s hostname=%s'%(ip,self._hostname(ip)))
             return True
 
-        self._logger('is_spam(allow): ip is not in rbl or blacklist: ip=%s'%ip)
+        log('is_spam(allow): ip is not in rbl or blacklist: ip=%s'%ip)
         return False
     # elif valid_host, allow
     def is_valid_host(self,ip):
         if self._is_in_whitelist(ip):
-            self._logger('is_valid_host(allow): ip is in whitelist: ip = %s'%ip)
+            log('is_valid_host(allow): ip is in whitelist: ip = %s'%ip)
             return True
         if not self._hostname(ip):
-            self._logger('is_valid_host(reject): ip has no hostname: ip = %s'%ip)
+            log('is_valid_host(reject): ip has no hostname: ip = %s'%ip)
             return False
         if not self._has_jp_hostname(ip):
-            self._logger('is_valid_host(reject): ip is not in .jp domain: ip=%s, hostname=%s'%(ip,self._hostname()))
+            log('is_valid_host(reject): ip is not in .jp domain: ip=%s, hostname=%s'%(ip,self._hostname(ip)))
             return False
 
-        self._logger('is_valid_host(allow): ip has jp domain: ip=%s hostname=%s'%(ip,self._hostname()))
+        log('is_valid_host(allow): ip has jp domain: ip=%s hostname=%s'%(ip,self._hostname(ip)))
         return True
     # elif valid_answer, allow
     #   disabled.

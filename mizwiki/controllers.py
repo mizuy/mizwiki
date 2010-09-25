@@ -1,21 +1,26 @@
 # -*- coding:utf-8 mode:Python -*-
-from mod_python import apache
-from cStringIO import StringIO
+from werkzeug import exceptions
 
+from cStringIO import StringIO
 from os import path
 import re
-
 from sets import Set
 
-import misc,lang,views,page
-from misc import memorize
+from mizwiki import misc,lang,views,page
+from mizwiki.misc import memorize
 
-import config
-import htmlwriter
-import models
-import svnrep
+from mizwiki import config, htmlwriter, models, svnrep
 
 text_access_denied = 'Access Denied'
+
+class IterWriter:
+    def __init__(self):
+        self._l = []
+    def write(self, text):
+        self._l.append(str(text))
+    def __iter__(self):
+        for f in self._l:
+            yield f
 
 re_cmd = re.compile('^cmd_(\w+)$')
 class Controller(object):
@@ -27,14 +32,17 @@ class Controller(object):
             if m:
                 self.commands[m.group(1)] = getattr(self,f)
         
-    def execute(self):
+    def __call__(self, environ, start_response):
+        self.environ = environ
+        self.start_response = start_response
+
         if not self.ri.has_key('cmd'):
             return self.view()
 
         try:
             cmd = self.commands[self.ri.get_text('cmd')]
         except KeyError:
-            raise apache.SERVER_RETURN, apache.HTTP_FORBIDDEN
+            raise exceptions.Forbidden()
 
         return cmd()
 
@@ -42,10 +50,7 @@ class Controller(object):
         self.ri.escape_if_clientcache(self.lastmodified_date,expire)
 
     def view(self):
-        raise apache.SERVER_RETURN, apache.HTTP_FORBIDDEN
-
-    def command(self,cmd):
-        raise apache.SERVER_RETURN, apache.HTTP_FORBIDDEN
+        raise exceptions.Forbidden()
 
     @property
     def lastmodified_date(self):
@@ -54,7 +59,6 @@ class Controller(object):
     @property
     def title(self):
         return self.ri.path_info
-
 
     @property
     def menu_links(self):
@@ -72,10 +76,23 @@ class Controller(object):
         return Set()
 
     def http_write(self, content_type, renderer):
-        self.ri.http_header(content_type)
-        w = htmlwriter.WikiWriter(self.ri.req)
+        self.start_response('200 OK', [('Content-type',content_type)])
+        iw = IterWriter()
+        w = htmlwriter.WikiWriter(iw)
         renderer(w,self)
-        return apache.OK
+        return iw
+
+    def http_file(self, content_type, filelike):
+        block_size = 4096
+        self.start_response('200 OK', [('Content-type',content_type)])
+        if 'wsgi.file_wrapper' in self.environ:
+            return environ['wsgi.file_wrapper'](filelike, block_size)
+        else:
+            return iter(lambda: filelike.read(block_size), '')
+
+    def http_text(self,text):
+        self.start_response('200 OK', [('Content-type',views.content_type_text)])
+        return [text]
     
 class ControllerWikiBase(Controller):
     def __init__(self, ri, path='FrontPage.wiki', rev=None):
@@ -98,7 +115,7 @@ class ControllerWikiBase(Controller):
 
     def cmd_history(self):
         if not self.wikifile.exist:
-            raise apache.SERVER_RETURN, apache.HTTP_NOT_FOUND
+            raise exceptions.NotFound()
         self.escape_if_clientcache(True)
         offset = self.ri.get_int('offset')
         
@@ -106,7 +123,7 @@ class ControllerWikiBase(Controller):
 
     def cmd_diff(self):
         if not self.wikifile.exist:
-            raise apache.SERVER_RETURN, apache.HTTP_NOT_FOUND
+            raise exceptions.NotFound()
 
         self.escape_if_clientcache(True)
 
@@ -136,17 +153,14 @@ class ControllerWikiBase(Controller):
 class ControllerAttachFile(ControllerWikiBase):
     def view(self):
         if not self.wikifile.exist:
-            raise apache.SERVER_RETURN, apache.HTTP_NOT_FOUND
+            raise exceptions.NotFound()
 
         if not config.mime_map.has_key(self.wikifile.ext()):
-            raise apache.SERVER_RETURN, apache.HTTP_FORBIDDEN
+            raise exceptions.Forbidden()
 
         self.excape_if_clientcache()
 
-        self.ri.http_header(config.mime_map[self.wikifile.ext()])
-        self.ri.req.write(self.wikifile.data)
-        return apache.OK
-
+        return self.http_file(config.mime_map[self.wikifile.ext()], self.wikifile.open())
 
 class ControllerWikiHead(ControllerWikiBase):
     @property
@@ -195,7 +209,7 @@ class ControllerWikiHead(ControllerWikiBase):
         
         base_rev = self.ri.get_int('base_rev')
         if not (base_rev<=self.ri.head_rev) and base_rev > 0:
-            raise apache.SERVER_RETURN, apache.HTTP_BAD_REQUEST
+            raise exceptions.BadRequest()
 
         paraedit = self.get_paraedit()
 
@@ -237,7 +251,7 @@ class ControllerWikiHead(ControllerWikiBase):
 
     def cmd_comment(self):
         if not self.wikifile.exist:
-            raise apache.SERVER_RETURN, apache.HTTP_NOT_FOUND
+            raise exceptions.NotFound()
 
         if self.ri.is_spam or not config.editable:
             return debugtext(self.ri.req,text_access_denied)
@@ -270,12 +284,12 @@ class ControllerWikiHead(ControllerWikiBase):
 
     def cmd_attach(self):
         if not self.wikifile.exist:
-            raise apache.SERVER_RETURN, apache.HTTP_NOT_FOUND
+            raise exceptions.NotFound()
         return self.page_attach()
 
     def cmd_upload(self):
         if not self.wikifile.exist:
-            raise apache.SERVER_RETURN, apache.HTTP_NOT_FOUND
+            raise exceptions.NotFound()
 
         if self.ri.is_spam or not config.editable:
             return debugtext(self.ri.req,text_access_denied)
@@ -371,8 +385,13 @@ class ControllerAtom(ControllerRecentChanges):
         self.escape_if_clientcache(True)
         return self.http_write('application/atom+xml', views.atom())
 
-def debugtext(req,text):
-    req.content_type = views.content_type_text
-    req.send_http_header()
-    req.write(text)
-    return apache.OK
+class ControllerTheme(Controller):
+    def __init__(self, ri, path):
+        super(ControllerTheme,self).__init__(ri)
+        self.path = path
+    def view(self):
+        ext = path.splitext(self.path)[1]
+        if not ext:
+            raise exceptions.Forbidden
+        f = open(path.join(path.abspath(path.dirname(__file__)),'theme',self.path), 'r')
+        return self.http_file(config.mime_map[ext],f)

@@ -23,10 +23,10 @@ pwd = path.abspath(path.join(path.dirname(__file__),'..'))
 cachedir = path.join(pwd,'cache/')
 cachedb = path.join(cachedir,'cache.db')
 tmp_dir = path.join(pwd,'tmp/')
+LOG_FILENAME = path.join(pwd,'log/error.log')
 
-hostname = 'localhost'
-w_path = 'w'
-top_url = 'http://%s/w/'%hostname
+hostname = 'localhost:5000'
+top_url = 'http://%s/'%hostname
 tex_url = 'http://%s/cgi/mimetex.cgi'%hostname
 
 def full_url(p):

@@ -171,3 +171,44 @@ print sys.pathをみていくと、svn-python.pthというファイルがみつ�
 /opt/local/lib/svn-python2.6
 % cp /opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/svn-python.pth .
 
+
+
+** mod_wsgi
+http://code.google.com/p/modwsgi/wiki/QuickConfigurationGuide
+を参照。
+
+% sudo port install mod_wsgi 
+% which easy_install-2.6
+/opt/local/bin/easy_install-2.6
+% easy_install-2.6 install werkzeug
+
+これでapacheからデフォルトで読める場所 (/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6)にインストールされる。
+
+% sudo nano /opt/local/apache2/conf/httpd.conf
+{{{
+o# LoadModule python_module modules/mod_python.so
+LoadModule wsgi_module modules/mod_wsgi.so
+
+<Directory /Users/mizuy/projects/mizwiki/mizwiki>
+Order allow,deny
+Allow from all
+</Directory>
+
+WSGIScriptAlias /test_app /Users/mizuy/projects/mizwiki/mizwiki/test_app.wsgi
+}}}
+1. LoadModuleでmod_pythonをはずし、mod_wsgiを入れる
+2. scriptのある場所をallow from all
+3. ScriptAliasを設定
+4. .wsgiの中のapplicationを読みに行く
+5. http://localhost/test_app/hogehoge にアクセスすると、SCRIPT_NAME=/test_app, PATH=INFO=/hogehoge で呼び出される
+
+test_app.wsgi
+{{{
+from werkzeug import test_app
+application = test_app
+}}}
+
+error.logにて, mod_wsgiを確認
+[Sun Sep 26 03:23:32 2010] [notice] Apache/2.2.16 (Unix) mod_ssl/2.2.16 OpenSSL/1.0.0a DAV/2 mod_wsgi/3.2 Python/2.6.6 configured -- resuming normal operations
+
+

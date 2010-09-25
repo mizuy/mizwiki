@@ -1,0 +1,62 @@
+
+** WSGI
+
+PEP 333
+Python Web Server Gateway Interface v1.0
+http://www.python.org/dev/peps/pep-0333/
+
+
+GRAHAM DUMPLETON(mod_wsgi) blog: Python 3.0 support in mod_wsgi to be disabled.
+http://blog.dscpl.com.au/2009/04/python-30-support-in-modwsgi-to-be.html
+
+** Werkzeug
+http://werkzeug.pocoo.org/
+
+** WSGI Application Design
+
+** porting mod_python to mod_wsgi
+
+*** 
+request(environ).get_remote_addr == 
+
+*** mod_python.utils.FileStorage
+werkzeug.Request(environ).form
+
+*** send file
+req.write(big_datas)
+->
+if 'wsgi.file_wrapper' in environ:
+    return environ['wsgi.file_wrapper'](filelike, block_size)
+else:
+    return iter(lambda: filelike.read(block_size), '')
+
+*** apache.DECLINE
+just use file-transporter
+
+*** logging
+req.log_error(msg) -> wsgi.errors.write(msg)
+
+*** Error
+raise apache.SERVER_RETURN, apache.NOT_FOUND
+->
+return werkzeug.exceptions.NotFound(environ, start_response)
+
+*** global variables
+
+mod_wsgi Processes And Threading
+http://code.google.com/p/modwsgi/wiki/ProcessesAndThreading
+
+IMPORTANT:
+wsgi could run in multi-thread and/or multi-process depending on the server settings.
+you can check current mode by environ['wsgi.multithreaded'] and environ['wsgi.multiprocesses']
+
+Simple Rule:
+1. use normal global variables for constants, thread-safe variables.
+2. use local stacks for variables per one request
+3. use thread locals for variables shared in mutiple request.
+4. use databases or filesystems with locks for variables shared in all request.
+
+Note:
+1. python global variables are initialized by a process, and used concurrently by multiple-threads at the same time.
+2. if you use thread local to store variables-per-a-request, you must properly clear the local when application returned. application must be reentrantable.
+

@@ -198,10 +198,14 @@ class SvnFile:
 
     @property
     def data(self):
+        v = self.open()
+        return v.read() if v else None
+
+    def open(self):
         if not self.isfile:
             return None
         stream = core.Stream(fs.file_contents(self._revision._root, self.path))
-        return stream.read()
+        return stream
 
     def history(self,cross_copy=False):
         oh = fs.node_history(self._revision._root,self.path)

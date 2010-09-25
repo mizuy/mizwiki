@@ -1,22 +1,21 @@
 # -*- coding:utf-8 mode:Python -*-
-
-from mod_python import apache, util
+from werkzeug import exceptions
 
 from xml.sax.saxutils import escape,unescape
 import rfc822, datetime
-from hostvalidator import HostValidator
-import config,misc
-import svnrep
 from os import path
+
+from mizwiki.hostvalidator import HostValidator
+from mizwiki import config, misc, svnrep, log
 
 class RequestInfo:
     def __repr__(self):
         return 'RequestInfo(ip=%s, %s)'%(self._ip,self.path_info)
 
-    def __init__(self, req_, path_info, url_for):
+    def __init__(self, request, path_info, url_for):
         "http requests"
-        self.req = req_
-        self.fs = util.FieldStorage(req_)
+        self.req = request
+        self.fs = request.args
 
         "svn repository"
         self.repo = svnrep.SvnRepository(config.repository_path)
@@ -24,12 +23,11 @@ class RequestInfo:
         self.head_rev = self.head.revno
 
         "host validation"
-        self._ip = self.req.get_remote_host(apache.REMOTE_NOLOOKUP)
+        self._ip = self.req.remote_addr
         self._v = HostValidator(config.rbl_list, 
                                 config.whitelist_ip,
                                 config.blacklist,
-                                config.spamblock,
-                                lambda x:self.req.log_error(x,apache.APLOG_INFO))
+                                config.spamblock)
 
         "path info"
         self.path_info = path_info
@@ -37,6 +35,7 @@ class RequestInfo:
 
     def full_link(self, name, **variables):
         return config.full_url(self.url_for(name, **variables))
+
     def link(self, name, **variables):
         ret = misc.relpath(self.url_for(name, **variables), self.path_info or '.')
         #self.log_debug('link %s %s -> %s'%(self.url_for(name, **variables), self.path_info or '.',ret))
@@ -55,6 +54,8 @@ class RequestInfo:
         return 'www-data@%s'%self._ip
     
     def escape_if_clientcache(self,lastmodified_date,expire):
+        '''disable'''
+        return
         '''
         check the datetime of client cache, and lastmodified datetime of wiki page
         send back the lastmodified date, and
@@ -66,6 +67,7 @@ class RequestInfo:
 
         # you should send Last-Modified whether If-Modified-Since is presented or not
         r = lmd.ctime()
+        
         self.req.headers_out['Last-Modified'] = r
         if expire:
             self.req.headers_out['Expires'] = r
@@ -73,7 +75,7 @@ class RequestInfo:
         if not config.use_client_cache:
             return
 
-        ims = self.req.headers_in.get('If-Modified-Since')
+        ims = self.req.headers.get('If-Modified-Since')
         if not ims:
             return
         try:
@@ -82,7 +84,7 @@ class RequestInfo:
             return
 
         if lmd <= ccd:
-            raise apache.SERVER_RETURN, apache.HTTP_NOT_MODIFIED
+            raise '304 NOT MODIFIED'
 
     def http_header(self, content_type):
         self.req.content_type = content_type
@@ -90,14 +92,14 @@ class RequestInfo:
 
     def get_int(self, name):
         try:
-            return int(self.fs.getfirst(name,'0'))
+            return int(self.fs.get(name,'0'))
         except:
-            raise apache.SERVER_RETURN, apache.HTTP_BAD_REQUEST
+            raise exceptions.BadRequest()
 
     def get_text(self, name):
-        return unescape(self.fs.getfirst(name,''))
+        return unescape(self.fs.get(name,''))
     def has_key(self, name):
         return self.fs.has_key(name)
 
     def log_debug(self, msg):
-        self.req.log_error(msg,apache.APLOG_NOTICE)
+        log.log(msg)

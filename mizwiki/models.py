@@ -1,13 +1,11 @@
 # -*- coding:utf-8 mode:Python -*-
 
-import cStringIO as StringIO
-
+from cStringIO import StringIO
 from os import path
-import difflib,datetime
-import config,wiki2html
+import difflib, datetime
 
-import svnrep
-from cache import cached, CacheSQL
+from mizwiki import config, wiki2html, svnrep
+from mizwiki.cache import cached, CacheSQL
 
 #you must setting the connection before loading wikipage module.
 #import sqlobject as so
@@ -91,6 +89,9 @@ class WikiFile(object):
     @property
     def data(self):
         return self._f.data
+
+    def open(self):
+        return self._f.open()
 
     def write(self, data, username, commitmsg, istext):
         return self._f.write(data, username, commitmsg, istext)
