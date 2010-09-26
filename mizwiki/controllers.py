@@ -14,7 +14,7 @@ from mizwiki import config, htmlwriter, models, svnrep
 
 text_access_denied = 'Access Denied'
 
-class IterWriter:
+class IterWriter(object):
     def __init__(self):
         self._l = []
     def write(self, text):
@@ -22,6 +22,37 @@ class IterWriter:
     def __iter__(self):
         for f in self._l:
             yield f
+
+class FileWrapper(object):
+    def __init__(self, filelike, content_type):
+        self.c = content_type
+        self.f = filelike
+    def __call__(self, environ, start_response):
+        start_response('200 OK', [('Content-type',self.c)])
+        if 'wsgi.file_wrapper' in environ:
+            return environ['wsgi.file_wrapper'](self.f, config.BLOCK_SIZE)
+        else:
+            return iter(lambda: self.f.read(config.BLOCK_SIZE), '')
+
+class RendererWrapper(object):
+    def __init__(self, renderer, controller, content_type=views.content_type):
+        self.r = renderer
+        self.c = content_type
+        self.h = controller
+    def __call__(self, environ, start_response):
+        start_response('200 OK', [('Content-type',self.c)])
+        iw = IterWriter()
+        w = htmlwriter.WikiWriter(iw)
+        self.r(w,self.h)
+        return iw
+
+class TextWrapper(object):
+    def __init__(self, text):
+        self.text = text
+    def __call__(self, environ, start_response):
+        start_response('200 OK', [('Content-type',views.content_type_text)])
+        return [self.text]
+
 
 re_cmd = re.compile('^cmd_(\w+)$')
 class Controller(object):
@@ -34,18 +65,16 @@ class Controller(object):
                 self.commands[m.group(1)] = getattr(self,f)
         
     def __call__(self, environ, start_response):
-        self.environ = environ
-        self.start_response = start_response
-
         if not self.ri.has_key('cmd'):
-            return self.view()
+            response = self.view()
+        else:
+            try:
+                cmd = self.commands[self.ri.get_text('cmd')]
+                response = cmd()
+            except KeyError:
+                raise exceptions.Forbidden()
 
-        try:
-            cmd = self.commands[self.ri.get_text('cmd')]
-        except KeyError:
-            raise exceptions.Forbidden()
-
-        return cmd()
+        return response(environ, start_response)
 
     def escape_if_clientcache(self,expire=False):
         self.ri.escape_if_clientcache(self.lastmodified_date,expire)
@@ -76,24 +105,6 @@ class Controller(object):
         #Set(['Head','History','Attach','Edit','View','Diff'])
         return Set()
 
-    def http_write(self, content_type, renderer):
-        self.start_response('200 OK', [('Content-type',content_type)])
-        iw = IterWriter()
-        w = htmlwriter.WikiWriter(iw)
-        renderer(w,self)
-        return iw
-
-    def http_file(self, content_type, filelike):
-        self.start_response('200 OK', [('Content-type',content_type)])
-        if 'wsgi.file_wrapper' in self.environ:
-            return environ['wsgi.file_wrapper'](filelike, config.BLOCK_SIZE)
-        else:
-            return iter(lambda: filelike.read(config.BLOCK_SIZE), '')
-
-    def http_text(self,text):
-        self.start_response('200 OK', [('Content-type',views.content_type_text)])
-        return [text]
-    
 class ControllerWikiBase(Controller):
     def __init__(self, ri, path='FrontPage.wiki', rev=None):
         super(ControllerWikiBase,self).__init__(ri)
@@ -119,7 +130,7 @@ class ControllerWikiBase(Controller):
         self.escape_if_clientcache(True)
         offset = self.ri.get_int('offset')
         
-        return self.http_write(views.content_type, views.history_body(offset))
+        return RendererWrapper(views.history_body(offset), self)
 
     def cmd_diff(self):
         if not self.wikifile.exist:
@@ -146,9 +157,7 @@ class ControllerWikiBase(Controller):
 
         ld = misc.linediff(f0lines,f1lines)
 
-        return self.http_write(views.content_type,
-                               views.diff_body(title,f0,f1,ld))
-
+        return RendererWrapper(views.diff_body(title,f0,f1,ld), self)
 
 class ControllerAttachFile(ControllerWikiBase):
     def view(self):
@@ -160,7 +169,7 @@ class ControllerAttachFile(ControllerWikiBase):
 
         self.excape_if_clientcache()
 
-        return self.http_file(config.MIME_MAP[self.wikifile.ext()], self.wikifile.open())
+        return FileWrapper(self.wikifile.open(), config.MIME_MAP[self.wikifile.ext()])
 
 class ControllerWikiHead(ControllerWikiBase):
     @property
@@ -173,7 +182,7 @@ class ControllerWikiHead(ControllerWikiBase):
     def view(self):
         if self.wikifile.exist:
             self.escape_if_clientcache(True)
-            return self.http_write(views.content_type, views.view_head_body())
+            return RendererWrapper(views.view_head_body(), self)
         else:
             return self.cmd_edit()
 
@@ -184,7 +193,7 @@ class ControllerWikiHead(ControllerWikiBase):
 
     def cmd_edit(self):
         if not config.EDITABLE or self.wikifile.path in page.locked_pages:
-            return self.http_write(views.content_type, views.locked_body())
+            return RendererWrapper(views.locked_body(), self)
 
         paraedit = self.get_paraedit()
 
@@ -198,14 +207,13 @@ class ControllerWikiHead(ControllerWikiBase):
         #if wikif:
         #    wikif = wiki2html.pre_convert_wiki(wikif)
 
-        return self.http_write(views.content_type,
-                               views.edit_body('',wikif,'','',paraedit,not self.ri.is_valid_host))
+        return RendererWrapper(views.edit_body('',wikif,'','',paraedit,not self.ri.is_valid_host), self)
 
     def cmd_commit(self):
         if self.ri.is_spam:
             return debugtext(self.ri.req,text_access_denied)
         if not config.EDITABLE or self.wikifile.path in page.locked_pages:
-            return self.http_write(views.content_type, views.locked_body())
+            return RendererWrapper(views.locked_body(), self)
         
         base_rev = self.ri.get_int('base_rev')
         if not (base_rev<=self.ri.head_rev) and base_rev > 0:
@@ -237,17 +245,16 @@ class ControllerWikiHead(ControllerWikiBase):
             
             preview_text =  self.wikifile.get_preview_xhtml(edit_src)
 
-            return self.http_write(views.content_type,
-                                   views.edit_body(preview_text,edit_src,commitmsg_text,
-                                                   message,not full_edit,not self.ri.is_valid_host))
+            return RendererWrapper(views.edit_body(preview_text,edit_src,commitmsg_text,
+                                                   message,not full_edit,not self.ri.is_valid_host),
+                                   self)
         else:
             r = self.wikifile.write(full_merged,
                                     self.ri.user,
                                     commitmsg_text,True)
-            return self.http_write(views.content_type,
-                                   views.commited_body(not not r,
+            return RendererWrapper(views.commited_body(not not r,
                                                        base_rev=self.ri.head_rev,
-                                                       commited_rev=r.revno))
+                                                       commited_rev=r.revno), self)
 
     def cmd_comment(self):
         if not self.wikifile.exist:
@@ -261,17 +268,15 @@ class ControllerWikiHead(ControllerWikiBase):
         comment_no = self.ri.get_int('comment_no')
 
         if (not self.ri.is_valid_host) or (not message):
-            return self.http_write(views.content_type,
-                                   views.edit_comment_body(comment_no,author,message,'',
-                                                           not self.ri.is_valid_host))
+            return RendererWrapper(views.edit_comment_body(comment_no,author,message,'',
+                                                           not self.ri.is_valid_host), self)
 
 
         r = self.wikifile.insert_comment(self.ri.head_rev, self.ri.user,
                                'comment by %s'% (author), comment_no, author, message)
         success = not not r
 
-        return self.http_write(views.content_type,
-                               views.commited_body(success,base_rev=self.ri.head_rev,commited_rev=r))
+        return RendererWrapper(views.commited_body(success,base_rev=self.ri.head_rev,commited_rev=r), self)
 
 
     def page_attach(self):
@@ -279,8 +284,7 @@ class ControllerWikiHead(ControllerWikiBase):
         exts = ' '.join(list(config.MIME_MAP.keys()))
         message = lang.upload(ms,exts)
 
-        return self.http_write(views.content_type,
-                               views.attach_body(message,not self.ri.is_valid_host))
+        return RendererWrapper(views.attach_body(message,not self.ri.is_valid_host), self)
 
     def cmd_attach(self):
         if not self.wikifile.exist:
@@ -320,8 +324,7 @@ class ControllerWikiHead(ControllerWikiBase):
                             message = 'commit error.'
 
                             
-        return self.http_write(views.content_type,
-                               views.uploaded_body(success,message))
+        return RendererWrapper(views.uploaded_body(success,message), self)
 
 class ControllerWikiRev(ControllerWikiBase):
     @property
@@ -334,9 +337,9 @@ class ControllerWikiRev(ControllerWikiBase):
     def view(self):
         if self.wikifile.exist:
             self.escape_if_clientcache(False)
-            return self.http_write(views.content_type, views.view_old_body())
+            return RendererWrapper(views.view_old_body(), self)
         else:
-            return self.http_write(views.content_type, views.not_found_body())
+            return RendererWrapper(views.not_found_body(), self)
 
 class ControllerSitemap(Controller):
     @property
@@ -345,7 +348,7 @@ class ControllerSitemap(Controller):
 
     def view(self):
         self.escape_if_clientcache(True)
-        return self.http_write(views.content_type, views.sitemap_body())
+        return RendererWrapper(views.sitemap_body(), self)
 
     def sitemap(self):
         rev = self.ri.head.last_paths_changed.revno
@@ -357,7 +360,7 @@ class ControllerSitemap(Controller):
 class ControllerSitemapText(ControllerSitemap):
     def view(self):
         self.escape_if_clientcache(True)
-        return self.http_write(views.content_type_text, views.sitemaptxt())
+        return RendererWrapper(views.sitemaptxt(), self)
 
 class ControllerRecentChanges(Controller):
     @property
@@ -367,7 +370,7 @@ class ControllerRecentChanges(Controller):
     def view(self):
         self.escape_if_clientcache(True)
         offset = self.ri.get_int('offset')
-        return self.http_write(views.content_type, views.recent_body(offset))
+        return RendererWrapper(views.recent_body(offset), self)
 
     def rev_date(self,revno):
         return self.ri.repo.get_revision(revno).date
@@ -383,7 +386,7 @@ class ControllerRecentChanges(Controller):
 class ControllerAtom(ControllerRecentChanges):
     def view(self):
         self.escape_if_clientcache(True)
-        return self.http_write('application/atom+xml', views.atom())
+        return RendererWrapper(views.atom(), self, 'application/atom+xml')
 
 class ControllerFile(Controller):
     def __init__(self, ri, relative_path):
@@ -394,7 +397,7 @@ class ControllerFile(Controller):
         if not ext:
             raise exceptions.Forbidden
         f = open(path.join(path.abspath(path.dirname(__file__)),self.rpath), 'r')
-        return self.http_file(config.MIME_MAP[ext],f)
+        return FileWrapper(f, config.MIME_MAP[ext])
 
 class ControllerTheme(ControllerFile):
     def __init__(self, ri, path):
