@@ -278,7 +278,6 @@ class SvnFile:
             r = repos.fs_commit_txn(self._repo.repos_ptr, txn)
         except Exception, a:
             fs.abort_txn(txn)
-            raise a
 
         return self.switch_rev(r) if r else None
 

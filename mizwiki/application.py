@@ -46,7 +46,7 @@ class MizWiki(object):
             if not controller:
                 raise exceptions.Forbidden()
     
-            ri = requestinfo.RequestInfo(request, upath_info, mapper.url_for)
+            ri = requestinfo.RequestInfo(request, mapper.url_for)
             response = controller(ri)
         except exceptions.HTTPException, e:
             response = e

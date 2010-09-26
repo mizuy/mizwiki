@@ -12,9 +12,6 @@ from os import path
 import misc
 import models
 
-content_type = 'text/html;charset=utf-8'
-content_type_text = 'text/plain;charset=utf-8'
-
 def xmldec(w):
     w.write('''<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 ''')
@@ -120,7 +117,7 @@ def menu(w,h):
 def pathheader(w,h):
     ri = h.ri
     w.push('div',id='pathinfo')
-    for path,p in misc.iterdir(ri.path_info):
+    for path,p in misc.iterdir(h.path_info):
         w.push('span',cls='pathinfoitem')
         w.a(p, href=ri.link('wiki_head',path=path))
         w.pop()
@@ -188,7 +185,7 @@ def view_old_body(w,h):
     w.hr()
     lmr = h.wikifile.lastmodified.revno
     w.textl('過去Revision表示モード。この内容は最新ではない可能性があります。')
-    w.link_wiki('最新版を見る',ri.link('wiki_head',path=ri.path_info))
+    w.link_wiki('最新版を見る',ri.link('wiki_head',path=h.wikifile.path))
     w.hr()
     navi(w,h)
     w.hr()
@@ -201,10 +198,9 @@ def attach_body(w,h,message,question):
     ri = h.ri
     pathheader(w,h)
     w.hr()
-    w.push('form',method='post', action='.', enctype='multipart/form-data')
+    w.push('form',method='post', action='?cmd=upload', enctype='multipart/form-data')
     
     w.push('div')
-    w.insertc('input',type='hidden', name='cmd', value='upload')
     w.insertc('input',type='file', size='100', name='file')
     w.pop()
     
@@ -225,7 +221,7 @@ def uploaded_body(w,h,success,message):
         w.insert('p','upload失敗')
         w.insert('p',message)
     w.insert('p','Path: %s'%h.wikifile.path)
-    w.a('ページへ行く',href='.')
+    w.a('ページへ行く',href=h.basepath)
 
 @curry2
 @template('Not Found',True)
@@ -254,7 +250,7 @@ def commited_body(w,h,success,base_rev,commited_rev):
     w.br()
     w.text('New Revision: %s' % commited_rev)
     w.pop()
-    w.a('ページへ行く',href='.')
+    w.a('ページへ行く',href=h.basepath)
 
 @curry2
 @template('Post Comment',True)
@@ -268,10 +264,9 @@ def edit_comment_body(w,h,comment_no,author,comment_text,message,question):
         w.br()
     w.hr()
 
-    w.push('form',method='post', action='.')
+    w.push('form',method='post', action='?cmd=comment')
     w.push('div',cls='comment')
 
-    w.insertc('input',type='hidden', name='cmd', value='comment')
     w.insertc('input',type='hidden', name='comment_no', value=comment_no)
     w.textl('Name: ')
     w.insertc('input',type='text', name='author', size='15', value=author)
@@ -292,7 +287,7 @@ def edit_body(w,h,preview_text,wiki_text,commitmsg_text,message,paraedit,questio
         w.text(m)
         w.br()
     w.hr()
-    w.push('form',method='post', action=h.ri.path_info, cls='editform')
+    w.push('form',method='post', action='?cmd=commit', cls='editform')
     w.push('div')
     w.insertc('input',type='hidden', name='cmd', value='commit')
     w.insertc('input',type='hidden', name='base_rev', value=h.wikifile.revno)
@@ -329,7 +324,7 @@ def edit_body(w,h,preview_text,wiki_text,commitmsg_text,message,paraedit,questio
 
 def navi(w,h):
     ri = h.ri
-    w.link_wiki('通常の表示モードに戻る',ri.link('wiki_head',path=ri.path_info))
+    w.link_wiki('通常の表示モードに戻る',ri.link('wiki_head',path=h.wikifile.path))
     w.hr()
     
     w.text('他Revisionナビゲーション:')
@@ -457,9 +452,9 @@ def recent_body(w,h,offset):
     w.insert('h1','Recent Changes')
 
     w.push('span')
-    w.a('younger',href='?offset=%s'%max(0,offset-page_size))
+    w.a('younger',href='?offset=%d'%max(0,offset-page_size))
     w.text('|')
-    w.a('older',href='?offset=%s'%(offset+page_size))
+    w.a('older',href='?offset=%d'%(offset+page_size))
     w.pop()
 
     for ind in range(page_size):

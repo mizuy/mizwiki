@@ -3,7 +3,6 @@ from werkzeug import exceptions
 
 from urllib import quote
 from xml.sax.saxutils import escape,unescape
-import rfc822, datetime
 from os import path
 
 from mizwiki.hostvalidator import HostValidator
@@ -13,7 +12,7 @@ class RequestInfo:
     def __repr__(self):
         return 'RequestInfo(ip=%s, %s)'%(self._ip,self.path_info)
 
-    def __init__(self, request, path_info, url_for):
+    def __init__(self, request, url_for):
         "http requests"
         self.req = request
         self.fs = request.args
@@ -23,11 +22,10 @@ class RequestInfo:
         self.head = self.repo.youngest
         self.head_rev = self.head.revno
 
-        "path info"
-        self.path_info = path_info
-        self.url_for = url_for
-
         self._logger = request.environ.get('wsgi.errors')
+
+        self.url_for = url_for
+        self.path_info = request.environ.get('PATH_INFO','/').lstrip('/')
 
         "host validation"
         self._ip = self.req.remote_addr
@@ -38,7 +36,10 @@ class RequestInfo:
                                 self.log)
 
     @property
+    @misc.memorize
     def hostname(self):
+        if config.HOSTNAME:
+            return config.HOSTNAME
         hostname = ''
         if self.req.environ.get('HTTP_HOST'):
             hostname += self.req.environ['HTTP_HOST']
@@ -68,7 +69,7 @@ class RequestInfo:
         return self.full_url_root + quote(self.req.environ.get('SCRIPT_NAME', '')) + '/' + self.url_for(name, **variables)
 
     def link(self, name, **variables):
-        return  misc.relpath(self.url_for(name, **variables), self.path_info or '.')
+        return  misc.relpath(self.url_for(name, **variables), self.path_info)
 
     @property
     def is_spam(self):
@@ -82,50 +83,6 @@ class RequestInfo:
     def user(self):
         return 'www-data@%s'%self._ip
     
-    def escape_if_clientcache(self,lastmodified_date,expire):
-        '''disable'''
-        return
-        '''
-        check the datetime of client cache, and lastmodified datetime of wiki page
-        send back the lastmodified date, and
-        send NotModified Code if you can use client cachef
-        '''
-        lmd = lastmodified_date
-        if config.GLOBAL_LASTMODIFIED_DATE:
-            lmd = max(lmd, config.GLOBAL_LASTMODIFIED_DATE)
-
-        # you should send Last-Modified whether If-Modified-Since is presented or not
-        r = lmd.ctime()
-        
-        self.req.headers_out['Last-Modified'] = r
-        if expire:
-            self.req.headers_out['Expires'] = r
-
-        if not config.USE_CLIENT_CACHE:
-            return
-
-        ims = self.req.headers.get('If-Modified-Since')
-        if not ims:
-            return
-        try:
-            ccd = datetime.datetime(*rfc822.parsedate(ims)[:6])
-        except:
-            return
-
-        if lmd <= ccd:
-            raise '304 NOT MODIFIED'
-
-    def get_int(self, name):
-        try:
-            return int(self.fs.get(name,'0'))
-        except:
-            raise exceptions.BadRequest()
-
-    def get_text(self, name):
-        return unescape(self.fs.get(name,''))
-    def has_key(self, name):
-        return self.fs.has_key(name)
-
     def log(self, msg):
         if self._logger:
             self._logger.write(msg+'\n')
