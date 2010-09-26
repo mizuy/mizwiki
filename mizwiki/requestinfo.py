@@ -34,11 +34,7 @@ class RequestInfo:
                                 config.whitelist_ip,
                                 config.blacklist,
                                 config.spamblock,
-                                self.log_debug)
-
-
-        self.log_debug('hgoehoge')
-        self.log_debug('%s'%self.is_spam)
+                                self.log)
 
     def full_link(self, name, **variables):
         return config.full_url(self.url_for(name, **variables))
@@ -108,6 +104,6 @@ class RequestInfo:
     def has_key(self, name):
         return self.fs.has_key(name)
 
-    def log_debug(self, msg):
+    def log(self, msg):
         if self._logger:
             self._logger.write(msg+'\n')

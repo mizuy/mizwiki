@@ -1,87 +1,100 @@
 * Install
 
-** Requirements
+** Install for Mac Snow Leopard (with MacPorts)
 
-python 2.4 over
-mod_python
-apache2
-sqlobject
+*** python version, python_select
+MacPortではpython_selectという複数のPython versionを使い分けルスクリプトがある
 
-** how to install
-
-必要なライブラリを適宜インストール
 {{{
-apt-get install python-subversion python-sqlobject libapache2-mod-python
+% sudo python_select python26-apple
+Selecting version "python26-apple" for python
+% which python
+/opt/local/bin/python
+% ls -al /opt/local/bin/python
+lrwxr-xr-x  1 root  admin  18 Sep 26 05:42 /opt/local/bin/python@ -> /usr/bin/python2.6
+% sudo python_select python31
+Selecting version "python31" for python
+% ls -al /opt/local/bin/python
+lrwxr-xr-x  1 root  admin  24 Sep 26 05:42 /opt/local/bin/python@ -> /opt/local/bin/python3.1
+% sudo python_select python26
+Selecting version "python26" for python
+% ls -al /opt/local/bin/python
+lrwxr-xr-x  1 root  admin  24 Sep 26 05:42 /opt/local/bin/python@ -> /opt/local/bin/python2.6
 }}}
-他いろいろ
 
-サーバーの/home/wikiにコードをcheckout
-.htaccessのPythonPathにlibのあるフォルダのフルパスを追加する
+/opt/local 以下にあるものは MacPorts でインストールされた物。
+
+*** Apache, mod_wsgi, libraries
+MacPortsでインストールしたmod_wsgiはデフォルトでは MacPorts の python 2.6を使うっぽい。
+これは後のwerkzeug.test_appで確認できる。2.6用に必要なライブラリをインストール
+
 {{{
-cd
-git clone git@github.com:mizuy/mizwiki.git mizwiki
-cd mizwiki
-nano .htaccess
-sudo make setup
+% sudo port install py26-setuptools
+% which easy_install-2.6
+/opt/local/bin/easy_install-2.6
+% sudo port install apache2
+% sudo port install mod_wsgi
+% sudo port install python26bindings
+% sudo easy_install-2.6 -U sqlobject
+% sudo easy_install-2.6 install werkzeug
 }}}
-/var/www/w/にインストールされる。
 
-orepositoryの作成
+これでapacheからデフォルトで読める場所 (/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6)にインストールされる。
+つかうeasy_installを間違えると目当ての場所にインストールされない。
+
+apacheは /opt/local/apache2/ にインストールされた。
+
+** mod_wsgiの設定
+http://code.google.com/p/modwsgi/wiki/QuickConfigurationGuide
+を参照。
+
+% sudo nano /opt/local/apache2/conf/httpd.conf
+{{{
+# LoadModule python_module modules/mod_python.so
+LoadModule wsgi_module modules/mod_wsgi.so
+
+<Directory /Users/mizuy/projects/mizwiki/mizwiki>
+Order allow,deny
+Allow from all
+</Directory>
+
+WSGIScriptAlias /test_app /Users/mizuy/projects/mizwiki/mizwiki/test_app.wsgi
+}}}
+
+1. LoadModuleでmod_pythonをはずし、mod_wsgiを入れる
+2. scriptのある場所をallow from all
+3. ScriptAliasを設定
+4. .wsgiの中のapplicationを読みに行く
+5. http://localhost/test_app/hogehoge にアクセスすると、SCRIPT_NAME=/test_app, PATH=INFO=/hogehoge で呼び出される
+
+test_app.wsgi
+{{{
+from werkzeug import test_app
+application = test_app
+}}}
+このtest_appは一通り環境変数をdumpしてくれる。
+
+error.logにて, mod_wsgiを確認
+[Sun Sep 26 03:23:32 2010] [notice] Apache/2.2.16 (Unix) mod_ssl/2.2.16 OpenSSL/1.0.0a DAV/2 mod_wsgi/3.2 Python/2.6.6 configured -- resuming normal operations
+
+
+*** Subversion repository
+
+repositoryの作成
 {{{
 sudo svnadmin create /home/wikirep
 sudo chown -R www-data:www-data wikirep
 sudo svn mkdir file:///home/wikirep/branches
 }}}
+
 lib/config.pyに設定
 {{{
 svn_base = 'branches'
 repository_path = '/home/wikirep'
 }}}
 
-apacheのhttp.confを編集。
-debianでは /etc/apache2/sites-enables/000-default
-{{{
-NameVirtualHost *
-ServerName ...
-<VirtualHost *>
-        ServerAdmin ...
 
-        DocumentRoot /var/www/
-        <Directory />
-                Options FollowSymLinks
-                AllowOverride None
-        </Directory>
-        <Directory /var/www/>
-                Options -ExecCGI -Indexes -FollowSymLinks -MultiViews
-                AllowOverride FileInfo
-                Order allow,deny
-                allow from all
-                # This directive allows us to have apache2's default start page
-                # in /apache2-default/, but still have / go to the right place
-                # RedirectMatch ^/$ /apache2-default/
-        </Directory>
-
-        ScriptAlias /cgi-bin/ /usr/lib/cgi-bin/
-        <Directory "/usr/lib/cgi-bin">
-                AllowOverride None
-                Options ExecCGI -MultiViews +SymLinksIfOwnerMatch
-                Order allow,deny
-                Allow from all
-        </Directory>
-
-        ErrorLog /var/log/apache2/error.log
-
-        # Possible values include: debug, info, notice, warn, error, crit,
-        # alert, emerg.
-        LogLevel warn
-
-        CustomLog /var/log/apache2/access.log combined
-        ServerSignature On
-</VirtualHost>
-}}}
-
-
-**　repositoryの公開 (optional)
+****　repositoryの公開 (optional)
 /etc/apache2/mods-available/dav_svn.conf
 {{{
 <Location /svn>
@@ -144,71 +157,77 @@ your_username = rw
 * = rw
 }}}
 
-mimetex.cgiの作成
+
+*** mimetex.cgiの作成
 {{{
 sudo make mimetex
 sudo cp mimetex.cgi /usr/lib/cgi-bin/
 }}}
 
+httpd.conf
+{{{
+ScriptAlias /cgi-bin/ /usr/lib/cgi-bin/
+<Directory "/usr/lib/cgi-bin">
+    AllowOverride None
+    Options ExecCGI -MultiViews +SymLinksIfOwnerMatch
+    Order allow,deny
+    Allow from all
+</Directory>
+}}}
 
-** for Mac (with MacPorts)
+** virtualenv
 
-sudo port install apache2
-sudo port install mod_python26
-sudo port install python26bindings
-sudo easy_install-2.6 -U sqlobject
+*** setup
 
-/opt/local/apache2/conf/httpd.conf
-に
-LoadModule python_module modules/mod_python.so
-追加
+% virtualenv --python=python2.6 environ
+% source environ/bin/activate
+(environ)% which python
+/Users/mizuy/projects/mizwiki/environ/bin/python
+(environ)% which pip
+/Users/mizuy/projects/mizwiki/environ/bin/pip
 
-** How to Install python binding for virtual env
+*** mod_wsgiでつかうには
+
+Getting started with Apache/mod_wsgi.
+http://blip.tv/file/3840484
+
+environのsite-packagesを強制的に読みに行く?
+pythonのversionをかえるには、mod_wsgiをコンパイルし直す必要あり
+http://code.google.com/p/modwsgi/wiki/QuickInstallationGuide
+% ./configure --with-apxs=/usr/local/apache/bin/apxs --with-python=/usr/local/bin/python
+
+*** python binding
 portでpython bindingをみにいく。
 print sys.pathをみていくと、svn-python.pthというファイルがみつかる。これをvirtualenvにもコピーすればおっけー
+% which python
+/opt/local/bin/python
+% python
+Python 2.6.6 (r266:84292, Aug 29 2010, 03:07:12) 
+[GCC 4.2.1 (Apple Inc. build 5664)] on darwin
+Type "help", "copyright", "credits" or "license" for more information.
+>>> import sys, pprint
+>>> pprint.pprint(sys.path)
+['',
+ '/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/nose-3.0.0.dev-py2.6.egg',
+ '/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/SQLObject-0.13.0-py2.6.egg',
+ '/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/FormEncode-1.2.3dev-py2.6.egg',
+ '/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/Werkzeug-0.6.2-py2.6.egg',
+ '/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python26.zip',
+ '/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6',
+ '/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/plat-darwin',
+ '/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/plat-mac',
+ '/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/plat-mac/lib-scriptpackages',
+ '/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/lib-tk',
+ '/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/lib-old',
+ '/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/lib-dynload',
+ '/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages',
+ '/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/PIL',
+ '/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/setuptools-0.6c11-py2.6.egg-info',
+ '/opt/local/lib/svn-python2.6']
 
+% cd /opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/
 % cat svn-python.pth 
 /opt/local/lib/svn-python2.6
-% cp /opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6/site-packages/svn-python.pth .
-
-
-
-** mod_wsgi
-http://code.google.com/p/modwsgi/wiki/QuickConfigurationGuide
-を参照。
-
-% sudo port install mod_wsgi 
-% which easy_install-2.6
-/opt/local/bin/easy_install-2.6
-% easy_install-2.6 install werkzeug
-
-これでapacheからデフォルトで読める場所 (/opt/local/Library/Frameworks/Python.framework/Versions/2.6/lib/python2.6)にインストールされる。
-
-% sudo nano /opt/local/apache2/conf/httpd.conf
-{{{
-o# LoadModule python_module modules/mod_python.so
-LoadModule wsgi_module modules/mod_wsgi.so
-
-<Directory /Users/mizuy/projects/mizwiki/mizwiki>
-Order allow,deny
-Allow from all
-</Directory>
-
-WSGIScriptAlias /test_app /Users/mizuy/projects/mizwiki/mizwiki/test_app.wsgi
-}}}
-1. LoadModuleでmod_pythonをはずし、mod_wsgiを入れる
-2. scriptのある場所をallow from all
-3. ScriptAliasを設定
-4. .wsgiの中のapplicationを読みに行く
-5. http://localhost/test_app/hogehoge にアクセスすると、SCRIPT_NAME=/test_app, PATH=INFO=/hogehoge で呼び出される
-
-test_app.wsgi
-{{{
-from werkzeug import test_app
-application = test_app
-}}}
-
-error.logにて, mod_wsgiを確認
-[Sun Sep 26 03:23:32 2010] [notice] Apache/2.2.16 (Unix) mod_ssl/2.2.16 OpenSSL/1.0.0a DAV/2 mod_wsgi/3.2 Python/2.6.6 configured -- resuming normal operations
+% cp svn-python.pth path-to-virtualenv-environ/lib/python2.6/site-packages/
 
 

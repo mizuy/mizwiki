@@ -1,22 +1,27 @@
 APACHE = /opt/local/apache2/bin/apachectl
 ## $(APACHE) = /etc/init.d/apache2
 
+WWWUSER = _www
+# WWWUSER = www-data
+
 restart:
 	$(APACHE) restart
 
 clearcache:
 	rm -rf cache
 	mkdir cache
-	chmod 700 cache
-	chown www-data:www-data cache
-
-clean:
+	chmod 770 cache
+	chown $(WWWUSER) cache
 	rm -rf tmp
 	mkdir tmp
-	chmod 700 tmp
-	chown www-data:www-data tmp
-	rm -f lib/*~
-	rm -f lib/*.pyc
+	chmod 770 tmp
+	chown $(WWWUSER) tmp
+
+clean:
+	rm -f *~
+	rm -f *.pyc
+	rm -f mizwiki/*~
+	rm -f mizwiki/*.pyc
 
 mimetex:
 	if ! [ -f mimetex.zip ]; then wget http://www.forkosh.com/mimetex.zip; fi;
@@ -26,9 +31,4 @@ mimetex:
 	rm -rf src
 
 pdf:
-	export LANG=C; a2ps -R --line-numbers=1 --columns=2 --medium=A4 --highlight-level=normal --borders no --file-align=virtual --header= --left-footer= --right-footer= --footer="%s. of %s#" --prologue=fixed lib/*.py -o - | ps2pdf - source.pdf
-
-setup:
-	if ! [ -d /var/www/w/ ]; then mkdir /var/www/w/; fi;
-	cp .htaccess /var/www/w/
-	cp -r theme /var/www/w/
+	export LANG=C; a2ps -R --line-numbers=1 --columns=2 --medium=A4 --highlight-level=normal --borders no --file-align=virtual --header= --left-footer= --right-footer= --footer="%s. of %s#" --prologue=fixed mizwiki/*.py -o - | ps2pdf - source.pdf

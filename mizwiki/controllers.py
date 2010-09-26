@@ -84,12 +84,11 @@ class Controller(object):
         return iw
 
     def http_file(self, content_type, filelike):
-        block_size = 4096
         self.start_response('200 OK', [('Content-type',content_type)])
         if 'wsgi.file_wrapper' in self.environ:
-            return environ['wsgi.file_wrapper'](filelike, block_size)
+            return environ['wsgi.file_wrapper'](filelike, config.BLOCK_SIZE)
         else:
-            return iter(lambda: filelike.read(block_size), '')
+            return iter(lambda: filelike.read(config.BLOCK_SIZE), '')
 
     def http_text(self,text):
         self.start_response('200 OK', [('Content-type',views.content_type_text)])

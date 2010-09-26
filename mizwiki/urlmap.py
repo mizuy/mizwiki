@@ -18,6 +18,9 @@ class UrlMap:
         self._rules[name] = r
 
     def dispatch(self, upath_info, error=None):
+        '''
+        TODO: big unified regex. (faster?)
+        '''
         for r in self._rulelist:
             m = r.re.match(upath_info)
             if m:

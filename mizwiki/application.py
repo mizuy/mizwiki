@@ -2,13 +2,10 @@ from werkzeug import Request, ClosingIterator, exceptions
 
 from mizwiki.local import local, local_manager
 
-from mizwiki.log import log
-
 import re
 from urllib import quote,unquote
 from os import path
-from mizwiki import config, controllers, urlmap
-from mizwiki.requestinfo import RequestInfo
+from mizwiki import config, controllers, urlmap, requestinfo
 
 re_invalidchars = re.compile(r'[^\w_./+\-]',re.U)
 
@@ -47,19 +44,14 @@ class MizWiki(object):
 
             controller = mapper.dispatch(upath_info)
             if not controller:
-                raise exceptions.Forbidden
+                raise exceptions.Forbidden()
     
-            ri = RequestInfo(request, upath_info, mapper.url_for)
+            ri = requestinfo.RequestInfo(request, upath_info, mapper.url_for)
             response = controller(ri)
         except exceptions.HTTPException, e:
             response = e
-        except:
-            raise
 
         return ClosingIterator(response(environ, start_response),
                                [local_manager.cleanup])
 
 application = MizWiki()
-
-from werkzeug.debug import DebuggedApplication
-application = DebuggedApplication(application, evalex=True)

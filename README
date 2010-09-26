@@ -1,0 +1,24 @@
+mizwiki
+
+yet another wiki based on subversion.
+
+features:
+- viewing, editing, merging, and committing via web.
+- you can see old revision and diffs via web.
+- you can check commit log by atom feeds.
+- fast statically generating engine.
+- wsgi application, written in python.
+- original wiki syntax.
+
+** Requirements
+- python 2.6
+- mod_wsgi
+- apache2
+- sqlobject
+- subversion python binding
+
+** Setups
+see INSTALL
+
+** License
+see LICENSE

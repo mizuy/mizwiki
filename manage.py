@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 from werkzeug import script
+from werkzeug import DebuggedApplication
 
 def make_app():
     from mizwiki.application import application
-    return application
+    return DebuggedApplication(application, evalex=True)
 
 def make_shell():
     from mizwiki import models, utils
