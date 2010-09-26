@@ -13,10 +13,10 @@ from mizwiki.cache import cached, CacheSQL
 cachef = CacheSQL()
 
 def _internal_path(local_path):
-    return path.join(config.svn_base,path.normpath(local_path))
+    return path.join(config.SVN_BASE,path.normpath(local_path))
 
 def _calc_local_path(internal_path):
-    b = config.svn_base.strip('/')
+    b = config.SVN_BASE.strip('/')
     i = internal_path.strip('/')
     if i.startswith(b):
         return i[len(b):].strip('/')

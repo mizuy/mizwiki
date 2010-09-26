@@ -18,40 +18,39 @@ content_type_text = 'text/plain;charset=utf-8'
 def xmldec(w):
     w.write('''<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 ''')
-    #<?xml version="1.0" encoding="UTF-8"?>
 
 def htmlheader(w,h,title,nobot=False):
     ri = h.ri
     w.push('head')
     w.insertc('meta',**{'http-equiv':'content-type', 'content':'text/html; charset=UTF-8'})
     w.insertc('link',rel='stylesheet', href=ri.link('theme',path='style.css'), type='text/css')
-    w.insert('title',text='%s - %s'%(title,config.site_name))
+    w.insert('title',text='%s - %s'%(title,config.SITE_NAME))
     w.insertc('meta',**{'http-equiv':'content-language', 'content':'ja'})
     if nobot:
         w.meta('robots','noindex,nofollow')
     w.insertc('link',rel='shortcut icon', href='/favicon.ico', type="image/vnd.microsoft.icon")
-    w.meta('description',config.description)
-    w.meta('keywords',config.keywords)
+    w.meta('description',config.DESCRIPTION)
+    w.meta('keywords',config.KEYWORDS)
     w.meta('rating','general')
-    w.meta('author',config.author)
+    w.meta('author',config.AUTHOR)
     w.insertc('link',rel='alternate', href=ri.link('atom'), type='application/atom+xml', title='Atom')
     w.pop()
 
 def header(w,h):
     ri = h.ri
     w.push('div',id='header')
-    if config.use_logo:
+    if config.LOGO:
         w.push('span',id='logo')
-        w.aimg(ri.full_link('wiki_head',path='FrontPage.wiki'),ri.full_link('theme',path='logo.png'),'Logo',90,64)
+        w.aimg(ri.full_link('wiki_head',path='FrontPage.wiki'),ri.full_link('theme',path=config.LOGO),'Logo',90,64)
         w.pop()
     w.pop()
 
 def footer(w,h):
     ri = h.ri
     w.push('div',id='footer')
-    if config.use_copyright_footer:
+    if config.USE_COPYRIGHT_FOOTER:
         w.push('p',cls='copyright')
-        w.text('Copyright (c) 2010 tmedic.or Permission is granted to copy, distribute and/or modify this document under the terms of the GNU Free Documentation License, Version 1.2 or any later version published by the Free Software Foundation; with no Invariant Sections, no Front-Cover Texts, and no Back-Cover Texts.A copy of the license is included in the section entitled ')
+        w.text('Copyright (c) 2010 tmedic.org Permission is granted to copy, distribute and/or modify this document under the terms of the GNU Free Documentation License, Version 1.2 or any later version published by the Free Software Foundation; with no Invariant Sections, no Front-Cover Texts, and no Back-Cover Texts.A copy of the license is included in the section entitled ')
         w.a("GNU Free Documentation License",href=ri.link('wiki_head',path='GNU_Free_Documentation_License.wiki'))
         w.text('.')
         w.pop()
@@ -533,13 +532,13 @@ def atom(w,h):
     w.writel('<?xml version="1.0" encoding="utf-8"?>')
     w.push('feed',**{'xmlns':'http://www.w3.org/2005/Atom', 'xml:lang':'ja'})
     w.insert('title',h.ri.hostname)
-    w.insert('subtitle',config.site_name)
+    w.insert('subtitle',config.SITE_NAME)
     w.insert('id','urn:uuid:'+getid(h.ri.full_url_root+'/rss'))
     w.insert('updated',ri.head.date.isoformat()+'Z')
     w.insertc('link',href=h.ri.full_url_root)
     w.insertc('link',rel='self', href=ri.full_link('atom'))
     w.push('author')
-    w.insert('name',config.author)
+    w.insert('name',config.AUTHOR)
     w.pop()
     for ind in range(page_size):
         rev = ri.head_rev-ind

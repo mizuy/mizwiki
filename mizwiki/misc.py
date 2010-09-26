@@ -81,8 +81,8 @@ def merge(mydata,olddata,yourdata,label0,label1,label2):
   1: conflict
   2: error
   '''
-  p0 = _tempfile.mktemp(dir=config.tmp_dir)
-  p1 = _tempfile.mktemp(dir=config.tmp_dir)
+  p0 = _tempfile.mktemp(dir=config.TMP_DIR)
+  p1 = _tempfile.mktemp(dir=config.TMP_DIR)
 
   ret = ''
   rcode = -1

@@ -5,7 +5,7 @@ from mizwiki.local import local, local_manager
 import re
 from urllib import quote,unquote
 from os import path
-from mizwiki import config, controllers, urlmap, requestinfo
+from mizwiki import controllers, urlmap, requestinfo
 
 re_invalidchars = re.compile(r'[^\w_./+\-]',re.U)
 

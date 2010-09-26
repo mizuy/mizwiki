@@ -19,7 +19,7 @@ class RequestInfo:
         self.fs = request.args
 
         "svn repository"
-        self.repo = svnrep.SvnRepository(config.repository_path)
+        self.repo = svnrep.SvnRepository(config.REPOSITORY_PATH)
         self.head = self.repo.youngest
         self.head_rev = self.head.revno
 
@@ -31,10 +31,10 @@ class RequestInfo:
 
         "host validation"
         self._ip = self.req.remote_addr
-        self._v = HostValidator(config.rbl_list, 
-                                config.whitelist_ip,
-                                config.blacklist,
-                                config.spamblock,
+        self._v = HostValidator(config.RBL_LIST,
+                                config.WHITELIST,
+                                config.BLACKLIST,
+                                config.SPAMBLOCK,
                                 self.log)
 
     @property
@@ -91,8 +91,8 @@ class RequestInfo:
         send NotModified Code if you can use client cachef
         '''
         lmd = lastmodified_date
-        if config.global_lastmodified_date:
-            lmd = max(lmd, config.global_lastmodified_date)
+        if config.GLOBAL_LASTMODIFIED_DATE:
+            lmd = max(lmd, config.GLOBAL_LASTMODIFIED_DATE)
 
         # you should send Last-Modified whether If-Modified-Since is presented or not
         r = lmd.ctime()
@@ -101,7 +101,7 @@ class RequestInfo:
         if expire:
             self.req.headers_out['Expires'] = r
 
-        if not config.use_client_cache:
+        if not config.USE_CLIENT_CACHE:
             return
 
         ims = self.req.headers.get('If-Modified-Since')

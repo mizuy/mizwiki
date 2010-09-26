@@ -155,12 +155,12 @@ class ControllerAttachFile(ControllerWikiBase):
         if not self.wikifile.exist:
             raise exceptions.NotFound()
 
-        if not config.mime_map.has_key(self.wikifile.ext()):
+        if not config.MIME_MAP.has_key(self.wikifile.ext()):
             raise exceptions.Forbidden()
 
         self.excape_if_clientcache()
 
-        return self.http_file(config.mime_map[self.wikifile.ext()], self.wikifile.open())
+        return self.http_file(config.MIME_MAP[self.wikifile.ext()], self.wikifile.open())
 
 class ControllerWikiHead(ControllerWikiBase):
     @property
@@ -183,7 +183,7 @@ class ControllerWikiHead(ControllerWikiBase):
         return None
 
     def cmd_edit(self):
-        if not config.editable or self.wikifile.path in page.locked_pages:
+        if not config.EDITABLE or self.wikifile.path in page.locked_pages:
             return self.http_write(views.content_type, views.locked_body())
 
         paraedit = self.get_paraedit()
@@ -204,7 +204,7 @@ class ControllerWikiHead(ControllerWikiBase):
     def cmd_commit(self):
         if self.ri.is_spam:
             return debugtext(self.ri.req,text_access_denied)
-        if not config.editable or self.wikifile.path in page.locked_pages:
+        if not config.EDITABLE or self.wikifile.path in page.locked_pages:
             return self.http_write(views.content_type, views.locked_body())
         
         base_rev = self.ri.get_int('base_rev')
@@ -253,7 +253,7 @@ class ControllerWikiHead(ControllerWikiBase):
         if not self.wikifile.exist:
             raise exceptions.NotFound()
 
-        if self.ri.is_spam or not config.editable:
+        if self.ri.is_spam or not config.EDITABLE:
             return debugtext(self.ri.req,text_access_denied)
 
         author = self.ri.get_text('author').strip() or 'AnonymousCoward'
@@ -275,8 +275,8 @@ class ControllerWikiHead(ControllerWikiBase):
 
 
     def page_attach(self):
-        ms = config.max_attach_size / 1024
-        exts = ' '.join(list(config.mime_map.keys()))
+        ms = config.MAX_ATTACH_SIZE / 1024
+        exts = ' '.join(list(config.MIME_MAP.keys()))
         message = lang.upload(ms,exts)
 
         return self.http_write(views.content_type,
@@ -291,7 +291,7 @@ class ControllerWikiHead(ControllerWikiBase):
         if not self.wikifile.exist:
             raise exceptions.NotFound()
 
-        if self.ri.is_spam or not config.editable:
+        if self.ri.is_spam or not config.EDITABLE:
             return debugtext(self.ri.req,text_access_denied)
         if not self.ri.is_valid_host:
             return self.page_attach()
@@ -306,10 +306,10 @@ class ControllerWikiHead(ControllerWikiBase):
                 root,ext = path.splitext(filename)
                 wa = self.wikifile.get_attach(filename)
 
-                if not config.mime_map.has_key(ext):
+                if not config.MIME_MAP.has_key(ext):
                     message = '%s: file type not supported'%filename
                 else:
-                    temp = misc.read_fs_file(item.file,config.max_attach_size)
+                    temp = misc.read_fs_file(item.file,config.MAX_ATTACH_SIZE)
                     if not temp:
                         message = '%s: too big file.'%filename
                     else:
@@ -350,7 +350,7 @@ class ControllerSitemap(Controller):
     def sitemap(self):
         rev = self.ri.head.last_paths_changed.revno
         revision = self.ri.repo.get_revision(rev)
-        top = revision.get_file(config.svn_base.strip('/'))
+        top = revision.get_file(config.SVN_BASE.strip('/'))
         for n,l in top.ls_all():
             yield models.WikiFile.from_svnfile(n), l
 
@@ -394,7 +394,7 @@ class ControllerFile(Controller):
         if not ext:
             raise exceptions.Forbidden
         f = open(path.join(path.abspath(path.dirname(__file__)),self.rpath), 'r')
-        return self.http_file(config.mime_map[ext],f)
+        return self.http_file(config.MIME_MAP[ext],f)
 
 class ControllerTheme(ControllerFile):
     def __init__(self, ri, path):
