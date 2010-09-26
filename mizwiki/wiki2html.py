@@ -48,9 +48,7 @@ class Paraedit:
                     t = pos
                     break
 
-            return './?'+urlencode({'cmd':'edit','paraedit_from':str(f),'paraedit_to':str(t)})
-        #return './?'+urllib.parse.urlencode({'cmd':'edit','paraedit_from':str(f),'paraedit_to':str(t)})
-
+            return '?'+urlencode({'cmd':'edit','paraedit_from':str(f),'paraedit_to':str(t)})
         return re_paraedit.sub(replace,lexer.source)
 
     @staticmethod
