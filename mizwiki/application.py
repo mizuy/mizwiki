@@ -37,7 +37,7 @@ class MizWiki(object):
         local.application = self
         request = Request(environ)
         try:
-            path_info = (environ.get('PATH_INFO') or '/').strip('/')
+            path_info = environ.get('PATH_INFO','/').strip('/')
             if re_invalidchars.search(path_info) != None:
                 raise PathInfoException
             upath_info = unicode(unquote(path_info),'utf-8')

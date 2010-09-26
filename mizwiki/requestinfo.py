@@ -1,6 +1,7 @@
 # -*- coding:utf-8 mode:Python -*-
 from werkzeug import exceptions
 
+from urllib import quote
 from xml.sax.saxutils import escape,unescape
 import rfc822, datetime
 from os import path
@@ -36,13 +37,38 @@ class RequestInfo:
                                 config.spamblock,
                                 self.log)
 
+    @property
+    def hostname(self):
+        hostname = ''
+        if self.req.environ.get('HTTP_HOST'):
+            hostname += self.req.environ['HTTP_HOST']
+        else:
+            hostname += self.req.environ['SERVER_NAME']
+
+            if self.req.environ['wsgi.url_scheme'] == 'https':
+                if self.req.environ['SERVER_PORT'] != '443':
+                    hostname += ':' + self.req.environ['SERVER_PORT']
+                else:
+                    if self.req.environ['SERVER_PORT'] != '80':
+                        hostname += ':' + self.req.environ['SERVER_PORT']
+        return hostname
+        
+    @property
+    @misc.memorize
+    def full_url_root(self):
+        url = self.req.environ['wsgi.url_scheme']+'://'
+        url += self.hostname
+        return url
+
+    @property
+    def full_tex_url(self):
+        return self.full_url_root + '/cgi/mimetex.cgi'
+
     def full_link(self, name, **variables):
-        return config.full_url(self.url_for(name, **variables))
+        return self.full_url_root + quote(self.req.environ.get('SCRIPT_NAME', '')) + '/' + self.url_for(name, **variables)
 
     def link(self, name, **variables):
-        ret = misc.relpath(self.url_for(name, **variables), self.path_info or '.')
-        #self.log_debug('link %s %s -> %s'%(self.url_for(name, **variables), self.path_info or '.',ret))
-        return ret
+        return  misc.relpath(self.url_for(name, **variables), self.path_info or '.')
 
     @property
     def is_spam(self):
@@ -88,10 +114,6 @@ class RequestInfo:
 
         if lmd <= ccd:
             raise '304 NOT MODIFIED'
-
-    def http_header(self, content_type):
-        self.req.content_type = content_type
-        self.req.send_http_header()
 
     def get_int(self, name):
         try:

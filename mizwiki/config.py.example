@@ -4,7 +4,7 @@ import sys,os
 from os import path
 
 ## debug
-debug = 1
+debug = True
 editable = True
 
 ## caches
@@ -16,21 +16,14 @@ use_client_cache = False
 ## subversion repository
 svn_base = 'private'
 repository_path = '/Users/mizuy/repos_wikicontent'
-bodytxt = 'body.txt'
 
 ## path
 pwd = path.abspath(path.join(path.dirname(__file__),'..'))
 cachedir = path.join(pwd,'cache/')
 cachedb = path.join(cachedir,'cache.db')
 tmp_dir = path.join(pwd,'tmp/')
-LOG_FILENAME = path.join(pwd,'log/error.log')
 
-hostname = 'localhost:5000'
-top_url = 'http://%s/'%hostname
-tex_url = 'http://%s/cgi/mimetex.cgi'%hostname
-
-def full_url(p):
-    return top_url.rstrip('/') + '/' + path.normpath(p).strip('/')
+BLOCK_SIZE = 4096
 
 ## spam filter
 spamblock = False
@@ -59,7 +52,8 @@ mime_map = {
     '.gif':'image/gif',
     '.png':'image/png',
     '.jpg':'image/jpg',
-    '.svg':'image/svg+xml'
+    '.svg':'image/svg+xml',
+    '.ico':'image/vnd.microsoft.icon'
     }
 
 

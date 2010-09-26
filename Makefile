@@ -23,6 +23,9 @@ clean:
 	rm -f mizwiki/*~
 	rm -f mizwiki/*.pyc
 
+prepare:
+	cp mizwiki/config.py mizwiki/config.py.example
+
 mimetex:
 	if ! [ -f mimetex.zip ]; then wget http://www.forkosh.com/mimetex.zip; fi;
 	rm -rf src
