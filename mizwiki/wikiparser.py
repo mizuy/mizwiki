@@ -92,7 +92,13 @@ class ReLexer:
     def eof(self):
         return self.lexer.eof() and not self.stack
 
-class DocumentInterface(object):
+class WikiParserBase(object):
+    def parse(self, source):
+        lexer = Lexer(source)
+        self.begin_document()
+        parse_body(lexer, self, 0)
+        return self.end_document()
+
     def begin_document(self):
         pass
     def end_document(self):
@@ -193,7 +199,7 @@ class DocumentInterface(object):
         pass
 
 
-class DI_dump(DocumentInterface):
+class WikiParserDump(WikiParserBase):
     def __init__(self,writer):
         self.w = writer
         
@@ -313,12 +319,6 @@ class DI_dump(DocumentInterface):
     def end_table_cell(self):
         self.w.write('</td>\n')
 
-
-def parse(doci, source):
-    lexer = Lexer(source)
-    doci.begin_document()
-    parse_body(lexer,doci,0)
-    doci.end_document()
 
 re_section = re.compile(r'(.+)\[#([_a-zA-Z0-9]+)\]\s*')
 re_cmd0 = re.compile(r'#(\w+):(.*)$')

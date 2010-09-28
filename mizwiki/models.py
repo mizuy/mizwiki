@@ -4,8 +4,32 @@ from cStringIO import StringIO
 from os import path
 import difflib, datetime
 
+import os
 from mizwiki import config, wiki2html, svnrep
 from mizwiki.cache import cached, CacheSQL
+
+class Wiki2HtmlWeb(wiki2html.Wiki2Html):
+    def __init__(self, current_path, page_exist):
+        super(Wiki2HtmlWeb, self).__init__()
+        self.current_path = os.path.normpath(current_path)
+        self.page_exist = page_exist
+        
+    def link_wiki(self,label,wikiname,wikianame):
+        name = wikiname.replace(' ','_')
+        path = os.path.normpath(name)
+        if path.startswith('./') or path.startswith('../'):
+            path = os.path.normpath(os.path.join(self.current_path, path))
+        #self.add_linkto(path)
+        
+        if label:
+            label = label.replace('_',' ')
+        else:
+            label = name
+
+        if self.page_exist(path):
+            self.w.link_wiki(label,path+wikianame)
+        else:
+            self.w.link_wikinotfound(label,path+wikianame)
 
 #you must setting the connection before loading wikipage module.
 #import sqlobject as so
@@ -106,7 +130,7 @@ class WikiFile(object):
         return ' file size: from %s bytes to %s bytes' % (o,n)
 
     def page_exist(self,another_path):
-        return self._f.revision.get_file(another_path).exist
+        return self._f.revision.get_file(_internal_path(another_path)).exist
     
     def history(self):
         for h in self._f.history():
@@ -138,7 +162,7 @@ class WikiPage(WikiFile):
 
     @cached(cachef, '_xhtml_')
     def _get_xhtml(self, path, dr):
-        return wiki2html.wiki_to_xhtml(self.data, self.path, self.page_exist)
+        return Wiki2HtmlWeb(self.path, self.page_exist).parse(self.data)
 
     @property
     def xhtml(self):
@@ -149,7 +173,7 @@ class WikiPage(WikiFile):
         preview version of get_xhtml
         user wikisrc instead of self.read()
         '''
-        return wiki2html.wiki_to_xhtml(wiki_src, self.path, self.page_exist)
+        return Wiki2HtmlWeb(self.path, self.page_exist).parse(wiki_src)
 
     @property
     def linkto(self):

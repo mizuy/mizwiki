@@ -6,7 +6,7 @@ from cStringIO import StringIO
 
 indicator = '<#contents/>'
 
-class DocumentInterface_Title(wikiparser.DocumentInterface):
+class DocumentInterface_Title(wikiparser.WikiParserBase):
     def __init__(self,doc):
         self.doc = doc
         

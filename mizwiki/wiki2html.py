@@ -173,11 +173,8 @@ re_text = re.compile(r'''
 | [\.,\'"\-\+!@#$%\^&*()|\\\[\]{};:<>/?]+
 ''',re.VERBOSE)
 
-class WikiConverter(wikiparser.DocumentInterface):
-    def __init__(self,current_path,page_exist):
-        self.current_path = os.path.normpath(current_path)
-        self.page_exist = page_exist
-
+class Wiki2Html(wikiparser.WikiParserBase):
+    def __init__(self):
         self.buff = StringIO()
         self.w = htmlwriter.WikiWriter(self.buff)
         self.fn_stack = [self.w]
@@ -192,33 +189,6 @@ class WikiConverter(wikiparser.DocumentInterface):
         self.lw = None
 
         self.section_count = 0
-
-    def get_wiki_link(self, path):
-        return os.path.normpath(os.path.relpath(path, self.current_path))
-
-    def wiki_link(self,label,wikiname,aname=''):
-        if label:
-            l,path = self._makelabel(wikiname)
-            #self.add_linkto(path)
-        else:
-            label,path = self._makelabel(wikiname)
-            #self.add_linkto(path)
-            label = label.replace('_',' ')
-
-        url = path
-        if self.page_exist(path):
-            self.w.link_wiki(label,url+aname)
-        else:
-            self.w.link_wikinotfound(label,url+aname)
-
-    def _makelabel(self,wikiname):
-        name = wikiname.replace(' ','_')
-        path = os.path.normpath(name)
-
-        if path.startswith('./') or path.startswith('../'):
-            path = os.path.normpath(os.path.join(self.current_path, path))
-        
-        return name, path
 
     def begin_document(self):
         pass
@@ -239,9 +209,9 @@ class WikiConverter(wikiparser.DocumentInterface):
                 else:
                     tmp.write(l)
                     tmp.write('\n')
-            self.outputs = tmp.getvalue()
+            return tmp.getvalue()
         else:
-            self.outputs = inputs
+            return inputs
 
     
     ########### Section ###########
@@ -378,7 +348,14 @@ class WikiConverter(wikiparser.DocumentInterface):
         else:
             self.w.link_external(uri,uri)
     def link_wiki(self,label,wikiname,wikianame):
-        self.wiki_link(label,wikiname,wikianame)
+        name = wikiname.replace(' ','_')
+        path = os.path.normpath(name)
+        
+        if label:
+            label = label.replace('_',' ')
+        else:
+            label = name
+        self.w.link_wiki(label,path+aname)
     
     # <a href=uri><img/></a>
     def link_img_uri(self,img_params,uri):
