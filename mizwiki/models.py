@@ -138,7 +138,7 @@ class WikiPage(WikiFile):
 
     @cached(cachef, '_xhtml_')
     def _get_xhtml(self, path, dr):
-        return wiki2html.wiki_to_xhtml(self.path, self.page_exist, self.data)
+        return wiki2html.wiki_to_xhtml(self.data, self.path, self.page_exist)
 
     @property
     def xhtml(self):
@@ -149,7 +149,7 @@ class WikiPage(WikiFile):
         preview version of get_xhtml
         user wikisrc instead of self.read()
         '''
-        return wiki2html.wiki_to_xhtml(self.path, self.page_exist, wiki_src)
+        return wiki2html.wiki_to_xhtml(wiki_src, self.path, self.page_exist)
 
     @property
     def linkto(self):

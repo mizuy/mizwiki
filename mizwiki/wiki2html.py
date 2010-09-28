@@ -3,8 +3,7 @@
 #import io
 from cStringIO import StringIO
 from urllib import quote,urlencode
-import re, string
-from os import path
+import re, string, os
 import md5
 #import hashlib
 
@@ -161,8 +160,8 @@ def pre_convert_wiki(indata):
         wl(l)
     return outf.getvalue()
 
-def wiki_to_xhtml(path,ci,source):
-    wc = WikiConverter(path,ci)
+def wiki_to_xhtml(source, path, page_exist):
+    wc = WikiConverter(path,page_exist)
     wikiparser.parse(wc,source)
     return wc.outputs
 
@@ -175,9 +174,9 @@ re_text = re.compile(r'''
 ''',re.VERBOSE)
 
 class WikiConverter(wikiparser.DocumentInterface):
-    def __init__(self,current_path,ci):
-        self.current_path = path.normpath(current_path)
-        self.ci = ci
+    def __init__(self,current_path,page_exist):
+        self.current_path = os.path.normpath(current_path)
+        self.page_exist = page_exist
 
         self.buff = StringIO()
         self.w = htmlwriter.WikiWriter(self.buff)
@@ -195,7 +194,7 @@ class WikiConverter(wikiparser.DocumentInterface):
         self.section_count = 0
 
     def get_wiki_link(self, path):
-        return path.normpath(path.relpath(path, self.current_path))
+        return os.path.normpath(os.path.relpath(path, self.current_path))
 
     def wiki_link(self,label,wikiname,aname=''):
         if label:
@@ -206,30 +205,20 @@ class WikiConverter(wikiparser.DocumentInterface):
             #self.add_linkto(path)
             label = label.replace('_',' ')
 
-        url = self.ci.get_wiki_link(path)
-        if self.ci.page_exist(path):
+        url = path
+        if self.page_exist(path):
             self.w.link_wiki(label,url+aname)
         else:
             self.w.link_wikinotfound(label,url+aname)
 
     def _makelabel(self,wikiname):
-        parts = path.split(wikiname.replace(' ','_'))
-        isdir = parts[-1] in ['.','..'] or '.' not in parts[-1]
-        path = os.join(parts)
+        name = wikiname.replace(' ','_')
+        path = os.path.normpath(name)
 
-        current = self.ci.get_path()
-
-        if parts[0]=='.':
-            name = path.canonicalize().displayname()
-            npath = (current + path).canonicalize()
-        elif parts[0]=='..':
-            name = path.canonicalize().displayname()
-            npath = (current + path).canonicalize()
-        else:
-            name = path.canonicalize().displayname()
-            npath = path.canonicalize()
-
-        return name,npath
+        if path.startswith('./') or path.startswith('../'):
+            path = os.path.normpath(os.path.join(self.current_path, path))
+        
+        return name, path
 
     def begin_document(self):
         pass
