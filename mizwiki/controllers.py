@@ -371,8 +371,8 @@ class ControllerWikiHead(ControllerWikiBase):
             message = 'no file.'
         else:
             item = self.ri.req.files[0]
-            filename = path.basename(path.normpath(item.filename.replace('\\','/'))).lower()
-            ext = path.splitext(filename)[1]
+            filename = os.path.basename(os.path.normpath(item.filename.replace('\\','/'))).lower()
+            ext = os.path.splitext(filename)[1]
             wa = self.wikifile.get_attach(filename)
 
             if not config.MIME_MAP.has_key(ext):
@@ -423,8 +423,8 @@ class ControllerSitemap(Controller):
         rev = self.ri.head.last_paths_changed.revno
         revision = self.ri.repo.get_revision(rev)
         top = revision.get_file(config.SVN_BASE.strip('/'))
-        for n,l in top.ls_all():
-            yield models.WikiFile.from_svnfile(n), l
+        for n in top.ls_all():
+            yield models.WikiFile.from_svnfile(n)
 
 class ControllerSitemapText(ControllerSitemap):
     def view(self):
@@ -457,15 +457,16 @@ class ControllerAtom(ControllerRecentChanges):
         self.escape_if_clientcache(True)
         return self.renderer_wrapper(views.atom(), CONTENT_TYPE['.atom'])
 
+PWD = os.path.abspath(os.path.dirname(__file__))
 class ControllerFile(Controller):
     def __init__(self, ri, relative_path):
         super(ControllerFile,self).__init__(ri)
         self.rpath = relative_path
     def view(self):
-        ext = path.splitext(self.rpath)[1]
+        ext = os.path.splitext(self.rpath)[1]
         if not ext:
             raise exceptions.Forbidden
-        f = open(path.join(path.abspath(path.dirname(__file__)),self.rpath), 'r')
+        f = open(os.path.join(PWD,self.rpath), 'r')
         return self.file_wrapper(f, ext)
 
 class ControllerTheme(ControllerFile):

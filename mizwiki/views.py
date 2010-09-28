@@ -501,8 +501,8 @@ def sitemap_body(w,h):
     rev = ri.head.last_paths_changed.revno
     lw = ListWriter(w)
 
-    for wp, level in h.sitemap():
-        lw.move(level+1)
+    for wp in h.sitemap():
+        lw.move(len(wp.path.strip('/').split('/')))
         w.link_wiki(wp.path, href=ri.link('wiki_head',path=wp.path))
 
     w.pop()
@@ -511,7 +511,7 @@ def sitemap_body(w,h):
 def sitemaptxt(w,h):
     ri = h.ri
 
-    for wp,level in h.sitemap():
+    for wp in h.sitemap():
         w.text(ri.full_link('wiki_head',path=wp.path))
         w.write('\n')
 

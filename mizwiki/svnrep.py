@@ -184,17 +184,18 @@ class SvnFile:
         k.sort()
 
         for i in k:
-            yield SvnFile(self._revision, path.normpath(path.join(self.path,i)))
+            yield SvnFile(self._revision, path.join(self.path,i))
 
     def ls_all(self):
-        def w_node(node, level):
+        def w_node(node):
             for c in node.children:
                 if c.isdir:
-                    w_node(c, level+1)
+                    for n in w_node(c):
+                        yield n
                 elif c.isfile:
-                    yield c, level
-        for n,l in w_node(self, 0):
-            yield n,l
+                    yield c
+        for n in w_node(self):
+            yield n
 
     @property
     def data(self):

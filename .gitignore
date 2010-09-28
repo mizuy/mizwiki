@@ -6,3 +6,4 @@ mizwiki/config.py
 \.#*
 log
 environ
+content
