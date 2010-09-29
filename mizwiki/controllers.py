@@ -261,6 +261,11 @@ class ControllerWikiHead(ControllerWikiBase):
         else:
             return Set(['Edit'])
 
+    def cmd_wordpress(self, ri):
+        if self.wikifile.exist:
+            self.escape_if_clientcache(ri.headers, True)
+            return self.text_wrapper(self.wikifile.wordpress.encode('utf-8'))
+
     def view(self, ri):
         if self.wikifile.exist:
             self.escape_if_clientcache(ri.headers, True)

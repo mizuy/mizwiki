@@ -7,6 +7,7 @@ import difflib, datetime
 import os
 from mizwiki import config, wiki2html, svnrep
 from mizwiki.cache import CacheSQL
+from mizwiki.wiki2wordpress import Wiki2Wordpress
 
 class Wiki2HtmlWeb(wiki2html.Wiki2Html):
     def __init__(self, current_path, page_exist):
@@ -211,6 +212,10 @@ class WikiPage(WikiFile):
         r = cachef.get_cachedata(repr((self.path,self.depend_rev)),
                                  lambda: Wiki2HtmlWeb(self.path, self.page_exist).parse(self.text))
         return r
+
+    @property
+    def wordpress(self):
+        return Wiki2Wordpress().parse(self.text)
 
     def get_preview_xhtml(self, wiki_src):
         '''
