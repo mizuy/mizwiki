@@ -17,6 +17,14 @@ def trunc_int(minimum,maximum,value):
     assert minimum <= maximum
     return min(max(value,minimum),maximum)
 
+re_text = re.compile(r'''
+[a-zA-Z0-9_]+
+| 。
+| 、
+| [\s]+
+| [\.,\'"\-\+!@#$%\^&*()|\\\[\]{};:<>/?]+
+''',re.VERBOSE|re.U)
+
 def pretty_text(text):
     ret = ''
     text = string.replace(text,'　','  ')
@@ -58,7 +66,7 @@ def pretty_text(text):
                 insert_ws = True
     return ret
 
-re_paraedit = re.compile(r'@@@paraedit:(\d+)@@@')
+re_paraedit = re.compile(r'@@@paraedit:(\d+)@@@',re.U)
 class Paraedit:
     '''
     recording starting and ending positions of the sections,
@@ -173,7 +181,7 @@ class Comment:
             return False
         return True
 
-re_aname = re.compile(r'\[#([_a-zA-Z0-9]+)\]')
+re_aname = re.compile(r'\[#([_a-zA-Z0-9]+)\]',re.U)
 
 def pre_convert_wiki(indata):
     outf = StringIO()
@@ -204,14 +212,6 @@ def wiki_to_xhtml(source, path, page_exist):
     wc = WikiConverter(path,page_exist)
     wikiparser.parse(wc,source)
     return wc.outputs
-
-re_text = re.compile(r'''
-[a-zA-Z0-9_]+
-| 。
-| 、
-| [\s]+
-| [\.,\'"\-\+!@#$%\^&*()|\\\[\]{};:<>/?]+
-''',re.VERBOSE)
 
 class Wiki2Html(wikiparser.WikiParserBase):
     def __init__(self):
@@ -414,8 +414,8 @@ class Wiki2Html(wikiparser.WikiParserBase):
 
 ############## plugin commands ####################
 
-re_wiki = re.compile(r'([\w_/\.\-]+)')
-re_url  = re.compile(r'(s?https?:\/\/[-_.!~*\'\(\)a-zA-Z0-9;\/?:\@&=+\$,%#]+)' )
+re_wiki = re.compile(r'([\w_/\.\-]+)',re.U)
+re_url  = re.compile(r'(s?https?:\/\/[-_.!~*\'\(\)a-zA-Z0-9;\/?:\@&=+\$,%#]+)' ,re.U)
 
 def is_wikiname(n):
     m = re_wiki.match(n)
@@ -443,7 +443,7 @@ def path_filter(f):
     else:
         return ''
 
-re_ref_optwidth = re.compile(r'\s*width\s*=\s*(\d+(px|em|%))\s*')
+re_ref_optwidth = re.compile(r'\s*width\s*=\s*(\d+(px|em|%))\s*',re.U)
 def plugin_ref(w, params):
     if len(params)<1:
         w.errormsg('plugin_ref: no parameter given')

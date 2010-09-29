@@ -141,7 +141,6 @@ class memorize(object):
         self.func = func
         self.cache = {}
     def __call__(self, *args):
-        print self.cache
         try:
             return self.cache[args]
         except KeyError:

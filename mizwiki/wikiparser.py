@@ -22,6 +22,8 @@ class Lexer:
         return self.pos_
 
     def get_line(self,advance=False):
+        if self.eof():
+            return None
         if self.nextl < 0:
             t = self.source.find('\n',self.pos_)
             if t<0:
@@ -43,7 +45,7 @@ class Lexer:
         return self.source.startswith(prefix,self.pos_)
 
     def skipspace(self):
-        while not self.eof() and self.source[self.pos_].isspace():
+        while not self.eof() and self.source[self.pos_] in ' \t\r':
             self.skip(1)
 
     def skipline(self):
@@ -321,10 +323,10 @@ class WikiParserDump(WikiParserBase):
         self.w.write('</td>\n')
 
 
-re_section = re.compile(r'(.+)\[#([_a-zA-Z0-9]+)\]\s*')
-re_cmd0 = re.compile(r'#(\w+):(.*)$')
-re_cmd1 = re.compile(r'#(\w+)\(([^)]*)\)$')
-re_cmd2 = re.compile(r'#(\w+)$')
+re_section = re.compile(r'(.+)\[#([_a-zA-Z0-9]+)\]\s*',re.U)
+re_cmd0 = re.compile(r'#(\w+):(.*)$',re.U)
+re_cmd1 = re.compile(r'#(\w+)\(([^)]*)\)$',re.U)
+re_cmd2 = re.compile(r'#(\w+)$',re.U)
 
 def parse_body(lexer,doci,section):
     '''
@@ -516,7 +518,7 @@ def parse_list(lexer,doci):
 
 ############## Line Parsing #######################
 
-re_cmd_img = re.compile(r'#img\(([^)]*)\)$')
+re_cmd_img = re.compile(r'#img\(([^)]*)\)$',re.U)
 
 '''
 urllabel:  [[(Label:)Link]]
@@ -635,7 +637,7 @@ def parse_line(lexer, doci, enable_footnote, within_footnote=False):
                 assert not 'unreachable'
 
 
-re_comment = re.compile(r'//|\+/|/\+')
+re_comment = re.compile(r'//|\+/|/\+',re.U)
 def parse_comment(lexer):
     assert lexer.startswith('/+')
     commentn = 0
@@ -654,7 +656,7 @@ def parse_comment(lexer):
             if commentn<=0:
                 return
 
-re_pre = re.compile(r'}}}|\n')
+re_pre = re.compile(r'}}}|\n',re.U)
 def parse_pre(lexer,doci):
     assert lexer.startswith('{{{')
 
@@ -667,7 +669,6 @@ def parse_pre(lexer,doci):
 
         if text:
             doci.text_pre(text)
-            doci.text_pre('\n')
             continue
         else:
             pt = m.group(0)
@@ -690,7 +691,7 @@ def lstrip1(s,m):
     assert s[:len(m)]==m
     return s[len(m):]
 
-re_table_optwidth = re.compile(r'width\s*=\s*(\d+(?:%|px|em)?)$')
+re_table_optwidth = re.compile(r'width\s*=\s*(\d+(?:%|px|em)?)$',re.U)
 
 class Cell:
     def __init__(self):

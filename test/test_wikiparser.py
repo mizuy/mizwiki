@@ -5,7 +5,7 @@ from nose.tools import *
 import re
 
 def test_lexer():
-    source = 'HOGE FOO BAR\n2nd line\n3rd line'
+    source = 'HOGE FOO BAR\n2nd line\n3rd line\n\n'
     for l in [Lexer(source), ReLexer(Lexer(source))]:
         eq_(l[0],source[0])
         eq_(l[20],source[20])
@@ -16,9 +16,14 @@ def test_lexer():
         eq_(l.get_line(True),'HOGE FOO BAR')
         eq_(l.pos(),13)
         eq_(l.eof(), False)
+        eq_(l.get_line(),'2nd line')
         eq_(l.get_line(True),'2nd line')
         eq_(l.eof(), False)
         eq_(l.get_line(True),'3rd line')
+        eq_(l.get_line(True),'')
+        eq_(l.get_line(True),None)
+        eq_(l.eof(), True)
+        eq_(l.get_line(True),None)
         eq_(l.eof(), True)
 
         "set_pos"
@@ -470,9 +475,11 @@ wiki = u"""
 """
 result = u"""<doc>
 <p>
-書いた文章とその行間隔は見た目そのまま出力されます。<br/>
+書いた文章とその行間隔は見た目そのまま出力されます。</p>
+<p>
 文章と文章の間に空行を挟むと、それぞれがパラグラフ(p)となります。<br/>
-空行をはさまずに次の文を書くと、パラグラフ(p)内で改行(br)されます。<br/>
+空行をはさまずに次の文を書くと、パラグラフ(p)内で改行(br)されます。</p>
+<p>
 チルダを使うと強制的に改行されます。<br/>
 これはグラフ要素などで使用することを意図しています。<br/>
 <br/>

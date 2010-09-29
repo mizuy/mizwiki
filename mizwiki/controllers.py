@@ -246,12 +246,12 @@ class ControllerAttachFile(ControllerWikiBase):
         if not self.wikifile.exist:
             raise exceptions.NotFound()
 
-        if not config.MIME_MAP.has_key(self.wikifile.ext()):
+        if not config.MIME_MAP.has_key(self.wikifile.ext):
             raise exceptions.Forbidden()
 
-        self.excape_if_clientcache()
+        self.escape_if_clientcache(ri.headers)
 
-        return FileWrapper(self.wikifile.open(), config.MIME_MAP[self.wikifile.ext()])
+        return FileWrapper(self.wikifile.open(), config.MIME_MAP[self.wikifile.ext])
 
 class ControllerWikiHead(ControllerWikiBase):
     @property
@@ -306,7 +306,7 @@ class ControllerWikiHead(ControllerWikiBase):
 
         paraedit = self._get_paraedit(ri.form)
 
-        wiki_text = unescape(form.get('text','')).encode('utf-8')
+        wiki_text = unescape(form.get('text','')).replace('\r\n','\n')
         commitmsg_text = unescape(form.get('commitmsg',''))
         ispreview = form.has_key('preview')
 

@@ -132,7 +132,6 @@ def pathheader(w,h):
     
 def content(w,h):
     w.push('div', id='main')
-    print repr(h.wikifile.xhtml)
     w.write(h.wikifile.xhtml)
     w.pop()
 

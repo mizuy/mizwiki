@@ -150,6 +150,10 @@ class WikiFile(object):
 
     def open(self):
         return self._f.open()
+    
+    @property
+    def ext(self):
+        return os.path.splitext(self.path)[1]
 
     def write(self, data, username, commitmsg, istext):
         #return self._f.write(data.replace('\r\n','\n'), username, commitmsg, istext)
@@ -177,8 +181,7 @@ class WikiPage(WikiFile):
         return self.data.decode('utf-8').replace('\r\n','\n')
 
     def write_text(self, text, username, commitmsg):
-        unicode(data.replace('\r\n','\n'),'utf-8')
-        return self._f.write(data, username, commitmsg, True)
+        return self._f.write(text.replace('\r\n','\n').encode('utf-8'), username, commitmsg, True)
 
     '''
     specialized WikiFile class which handle revisionedfile whose extname is '.wiki'
@@ -286,7 +289,7 @@ def merge_with_latest(wp, base_page, wiki_src):
         else:
             message += lang.merge_error
 
-        return out,True,message
+        return out.decode('utf-8'),True,message
     else:
         return wiki_src,False,message
 

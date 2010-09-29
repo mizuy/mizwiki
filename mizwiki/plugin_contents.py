@@ -2,7 +2,7 @@ import copy
 import wiki2html
 import htmlwriter, wikiparser
 
-from cStringIO import StringIO
+from StringIO import StringIO
 
 indicator = '<#contents/>'
 
