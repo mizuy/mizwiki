@@ -1,4 +1,5 @@
 import re
+from urllib import unquote
 
 class UrlMap:
     class Rule:
@@ -17,10 +18,12 @@ class UrlMap:
         self._rulelist.append(r)
         self._rules[name] = r
 
-    def dispatch(self, upath_info, error=None):
+    def dispatch(self, path_info, error=None):
         '''
         TODO: big unified regex. (faster?)
         '''
+        upath_info = unicode(unquote(path_info),'utf-8')
+
         for r in self._rulelist:
             m = r.re.match(upath_info)
             if m:
@@ -29,7 +32,7 @@ class UrlMap:
                     vars[var] = m.group(i+1)
                 if error:
                     error('controller=%s, vars=%s'%(r.controller.__class__.__name__,vars))
-                return lambda ri:r.controller(ri, **vars)
+                return r.controller(path_info, **vars)
         return None
 
     def url_for(self, name, **variables):

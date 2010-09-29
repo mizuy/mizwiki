@@ -23,15 +23,15 @@ def test_urlmap():
     mapper.add_rule('attach', newcont('attach'),
                     r'^([\w_/+\-]+\.[\w_]+)$', "%s",["path"])
 
-    eq_(mapper.dispatch('RecentChanges')(None), ('rc',None,None))
-    eq_(mapper.dispatch('RecentChanges/atom.xml')(None), ('atom',None,None))
-    eq_(mapper.dispatch('hogehoge/hogehoge')(None), ('wiki_head',None,'hogehoge/hogehoge'))
-    eq_(mapper.dispatch('hogeko.jpg')(None), ('attach',None,'hogeko.jpg'))
+    eq_(mapper.dispatch('RecentChanges'), ('rc',None,None))
+    eq_(mapper.dispatch('RecentChanges/atom.xml'), ('atom',None,None))
+    eq_(mapper.dispatch('hogehoge/hogehoge'), ('wiki_head',None,'hogehoge/hogehoge'))
+    eq_(mapper.dispatch('hogeko.jpg'), ('attach',None,'hogeko.jpg'))
 
-    eq_(mapper.dispatch('r10/hogehoge/hogehoge')(None), ('wiki_rev','10','hogehoge/hogehoge'))
-    eq_(mapper.dispatch('r10/hogeko.jpg')(None), ('attach_rev','10','hogeko.jpg'))
+    eq_(mapper.dispatch('r10/hogehoge/hogehoge'), ('wiki_rev','10','hogehoge/hogehoge'))
+    eq_(mapper.dispatch('r10/hogeko.jpg'), ('attach_rev','10','hogeko.jpg'))
 
-    eq_(mapper.dispatch('')(None), ('frontpage',None,None))
+    eq_(mapper.dispatch(''), ('frontpage',None,None))
 
     eq_(mapper.url_for('recentchanges'), 'RecentChanges')
     eq_(mapper.url_for('atom'), 'RecentChanges/atom.xml')

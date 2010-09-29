@@ -28,7 +28,7 @@ def test_files():
         ('FrontPage.wiki?cmd=attach', 'Upload File: FrontPage.wiki'),
         ('FrontPage.wiki?cmd=history', 'History: FrontPage.wiki'),
         ('FrontPage.wiki?cmd=diff', 'Diff: FrontPage.wiki'),
-        ('r30/FrontPage.wiki', 'Old File: r30/FrontPage.wiki'),
+        ('r30/FrontPage.wiki', 'Old File: Revision 30, FrontPage.wiki'),
         ]
     for path, t in titles:
         s, head, h = geth(path)

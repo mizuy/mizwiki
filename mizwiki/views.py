@@ -17,10 +17,9 @@ def xmldec(w):
 ''')
 
 def htmlheader(w,h,title,nobot=False):
-    ri = h.ri
     w.push('head')
     w.insertc('meta',**{'http-equiv':'content-type', 'content':'text/html; charset=UTF-8'})
-    w.insertc('link',rel='stylesheet', href=ri.link('theme',path='style.css'), type='text/css')
+    w.insertc('link',rel='stylesheet', href=h.linker.link('theme',path='style.css'), type='text/css')
     w.insert('title',text='%s - %s'%(title,config.SITE_NAME))
     w.insertc('meta',**{'http-equiv':'content-language', 'content':'ja'})
     if nobot:
@@ -30,49 +29,46 @@ def htmlheader(w,h,title,nobot=False):
     w.meta('keywords',config.KEYWORDS)
     w.meta('rating','general')
     w.meta('author',config.AUTHOR)
-    w.insertc('link',rel='alternate', href=ri.link('atom'), type='application/atom+xml', title='Atom')
+    w.insertc('link',rel='alternate', href=h.linker.link('atom'), type='application/atom+xml', title='Atom')
     w.pop()
 
 def header(w,h):
-    ri = h.ri
     w.push('div',id='header')
     if config.LOGO:
         w.push('span',id='logo')
-        w.aimg(ri.full_link('wiki_head',path='FrontPage.wiki'),ri.full_link('theme',path=config.LOGO),'Logo',90,64)
+        w.aimg(h.linker.full_link('wiki_head',path='FrontPage.wiki'),h.linker.full_link('theme',path=config.LOGO),'Logo',90,64)
         w.pop()
     w.pop()
 
 def footer(w,h):
-    ri = h.ri
     w.push('div',id='footer')
     if config.USE_COPYRIGHT_FOOTER:
         w.push('p',cls='copyright')
         w.text('Copyright (c) 2010 tmedic.org Permission is granted to copy, distribute and/or modify this document under the terms of the GNU Free Documentation License, Version 1.2 or any later version published by the Free Software Foundation; with no Invariant Sections, no Front-Cover Texts, and no Back-Cover Texts.A copy of the license is included in the section entitled ')
-        w.a("GNU Free Documentation License",href=ri.link('wiki_head',path='GNU_Free_Documentation_License.wiki'))
+        w.a("GNU Free Documentation License",href=h.linker.link('wiki_head',path='GNU_Free_Documentation_License.wiki'))
         w.text('.')
         w.pop()
     w.push('p',cls='validation')
     w.aimg('http://validator.w3.org/check?uri=referer',
-           ri.full_link('theme',path='valid-xhtml10.png'),'Valid XHTML 1.0 Strict',88,31)
+           h.linker.full_link('theme',path='valid-xhtml10.png'),'Valid XHTML 1.0 Strict',88,31)
     def q(v):
         return quote(v).replace('/','%2F')
-    w.aimg('http://jigsaw.w3.org/css-validator/validator?uri=%s'%q(ri.full_link('theme',path='style.css')),
-           ri.full_link('theme',path='valid-css.png'),'Valid CSS',88,31)
-    w.aimg('http://validator.w3.org/feed/check.cgi?url=%s'%q(ri.full_link('atom')),
-           ri.full_link('theme',path='valid-atom.png'),'Valid Atom 1.0',88,31)
+    w.aimg('http://jigsaw.w3.org/css-validator/validator?uri=%s'%q(h.linker.full_link('theme',path='style.css')),
+           h.linker.full_link('theme',path='valid-css.png'),'Valid CSS',88,31)
+    w.aimg('http://validator.w3.org/feed/check.cgi?url=%s'%q(h.linker.full_link('atom')),
+           h.linker.full_link('theme',path='valid-atom.png'),'Valid Atom 1.0',88,31)
     w.pop()
     w.pop()
 
 def menu(w,h):
-    ri = h.ri
     w.push('div',id='navigator')
 
     w.text('[')
-    w.a('FrontPage',href=ri.link('frontpage'))
+    w.a('FrontPage',href=h.linker.link('frontpage'))
     w.text('|')
-    w.a('Sitemap',href=ri.link('sitemap'))
+    w.a('Sitemap',href=h.linker.link('sitemap'))
     w.text('|')
-    w.a('RecentChanges',href=ri.link('recentchanges'))
+    w.a('RecentChanges',href=h.linker.link('recentchanges'))
     w.text(']')
     w.space()
 
@@ -81,6 +77,16 @@ def menu(w,h):
         'View,Source,Diff'.split(',')
         ]
     mi = h.menu_items
+
+    menu_links = {
+        'History':lambda:'?cmd=history',
+        'Attach':lambda:'?cmd=attach',
+        'Edit':lambda:'?cmd=edit',
+        'Source':lambda:"?cmd=viewsrc",
+        'Diff': lambda:"?cmd=diff",
+        'Head': lambda:h.linker.link('wiki_head',path=h.wikifile.path),
+        'View': lambda:h.linker.link('wiki_head',path=h.wikifile.path)}
+
     for j in g:
         if Set(j).intersection(mi):
             w.text('[')
@@ -90,21 +96,21 @@ def menu(w,h):
                     if not first:
                         w.text('|')
                     first = 0
-                    w.a(i,href=h.menu_links[i])
+                    w.a(i,href=menu_links[i]())
             w.text(']')
             w.space()
             
     w.text('[')
-    w.a('Wiki',href=ri.link('wiki_head',path='AboutWiki.wiki'))
+    w.a('Wiki',href=h.linker.link('wiki_head',path='AboutWiki.wiki'))
     w.text('|')
-    w.a('Syntax',href=ri.link('wiki_head',path='Syntax.wiki'))
+    w.a('Syntax',href=h.linker.link('wiki_head',path='Syntax.wiki'))
     w.text(']')
 
     w.push('form',method='get', action='http://www.google.co.jp/search')
     w.push('div',id='searchbox')
     w.insertc('input',type='text', name='q', size='18', maxlength='255', value='')
-    w.insertc('input',type='hidden', name='sitesearch', value=h.ri.hostname)
-    w.insertc('input',type='hidden', name='domains', value=h.ri.hostname)
+    w.insertc('input',type='hidden', name='sitesearch', value=h.linker.hostname)
+    w.insertc('input',type='hidden', name='domains', value=h.linker.hostname)
     w.insertc('input',type='hidden', name='ie', value='UTF-8')
     w.insertc('input',type='hidden', name='oe', value='UTF-8')
     w.insertc('input',type='hidden', name='hl', value='ja')
@@ -115,11 +121,10 @@ def menu(w,h):
     w.pop()
 
 def pathheader(w,h):
-    ri = h.ri
     w.push('div',id='pathinfo')
-    for path,p in misc.iterdir(h.path_info):
+    for path,p in misc.iterdir(h.linker.path_info):
         w.push('span',cls='pathinfoitem')
-        w.a(p, href=ri.link('wiki_head',path=path))
+        w.a(p, href=h.linker.link('wiki_head',path=path))
         w.pop()
         w.text('/')
     w.pop()
@@ -140,10 +145,17 @@ hogehoge_body(w,h.parameters) -> template(title,nobot)(hogehoge_body)(w,h,parame
 def template(title,nobot=False):
     def decorator(body):
         def inner(w,h,*args,**kw):
-            ri = h.ri
             xmldec(w)
             w.push('html',**{'xmlns':'http://www.w3.org/1999/xhtml', 'xml:lang':'ja'})
-            htmlheader(w,h,(title+': ' if title else '')+h.title,nobot)
+            
+            t = ''
+            if title:
+                t += title+': '
+            if h.title:
+                t += h.title
+            else:
+                t += h.linker.path_info
+            htmlheader(w,h,t,nobot)
             w.push('body')
             
             header(w,h)
@@ -180,12 +192,11 @@ def view_head_body(w,h):
 @curry2
 @template('Old File',True)
 def view_old_body(w,h):
-    ri = h.ri
     pathheader(w,h)
     w.hr()
     lmr = h.wikifile.lastmodified.revno
     w.textl('過去Revision表示モード。この内容は最新ではない可能性があります。')
-    w.link_wiki('最新版を見る',ri.link('wiki_head',path=h.wikifile.path))
+    w.link_wiki('最新版を見る',h.linker.link('wiki_head',path=h.wikifile.path))
     w.hr()
     navi(w,h)
     w.hr()
@@ -195,7 +206,6 @@ def view_old_body(w,h):
 @curry2
 @template('Upload File')
 def attach_body(w,h,message,question):
-    ri = h.ri
     pathheader(w,h)
     w.hr()
     w.push('form',method='post', action='?cmd=upload', enctype='multipart/form-data')
@@ -212,7 +222,6 @@ def attach_body(w,h,message,question):
 @curry2
 @template('Uploaded',True)
 def uploaded_body(w,h,success,message):
-    ri = h.ri
     pathheader(w,h)
     w.hr()
     if success:
@@ -226,16 +235,14 @@ def uploaded_body(w,h,success,message):
 @curry2
 @template('Not Found',True)
 def notfound_body(w,h):
-    ri = h.ri
     pathheader(w,h)
     w.hr()
     w.insert('p','このRevisionにこのページは存在しません。')
-    w.a('現在のページを見にいく or 編集する',href=ri.link('wiki_head',path=h.wikifile.path))
+    w.a('現在のページを見にいく or 編集する',href=h.linker.link('wiki_head',path=h.wikifile.path))
 
 @curry2
 @template('Commited',True)
 def commited_body(w,h,success,base_rev,commited_rev):
-    ri = h.ri
     pathheader(w,h)
     w.hr()
     if success:
@@ -255,7 +262,6 @@ def commited_body(w,h,success,base_rev,commited_rev):
 @curry2
 @template('Post Comment',True)
 def edit_comment_body(w,h,comment_no,author,comment_text,message,question):
-    ri = h.ri
     pathheader(w,h)
     w.hr()
     w.insert('p','Current Revision: %s' % h.wikifile.revno)
@@ -279,7 +285,6 @@ def edit_comment_body(w,h,comment_no,author,comment_text,message,question):
 @curry2
 @template('Edit',True)
 def edit_body(w,h,preview_text,wiki_text,commitmsg_text,message,paraedit,question):
-    ri = h.ri
     pathheader(w,h)
     w.hr()
     w.insert('p','Current Revision: %s' % h.wikifile.revno)
@@ -309,10 +314,10 @@ def edit_body(w,h,preview_text,wiki_text,commitmsg_text,message,paraedit,questio
 
     w.push('p')
     w.text('Wikiの文法は')
-    w.a('Wiki/Syntax',href=ri.link('wiki_head',path='Syntax.wiki'),cls='wiki')
+    w.a('Wiki/Syntax',href=h.linker.link('wiki_head',path='Syntax.wiki'),cls='wiki')
     w.text('を参照してください。')
     w.text('大きな編集をする場合は')
-    w.a('Wiki/編集ガイドライン',href=ri.link('wiki_head',path='Guideline.wiki'),cls='wiki')
+    w.a('Wiki/編集ガイドライン',href=h.linker.link('wiki_head',path='Guideline.wiki'),cls='wiki')
     w.text('にも目を通して下さい。')
     w.pop()
 
@@ -323,8 +328,7 @@ def edit_body(w,h,preview_text,wiki_text,commitmsg_text,message,paraedit,questio
         w.pop()
 
 def navi(w,h):
-    ri = h.ri
-    w.link_wiki('通常の表示モードに戻る',ri.link('wiki_head',path=h.wikifile.path))
+    w.link_wiki('通常の表示モードに戻る',h.linker.link('wiki_head',path=h.wikifile.path))
     w.hr()
     
     w.text('他Revisionナビゲーション:')
@@ -333,7 +337,7 @@ def navi(w,h):
     lw.move(1)
     w.text('Head')
     lw.move(2)
-    rp = ri.link('wiki_rev',rev=h.wikifile.revno,path=h.wikifile.path)
+    rp = h.linker.link('wiki_rev',rev=h.wikifile.revno,path=h.wikifile.path)
     w.link_wiki('%s'%h.wikifile.revno,href=rp)
     w.text(', ')
     w.a('diff',href=rp+'?cmd=diff')
@@ -346,7 +350,7 @@ def navi(w,h):
         if not lm:
             break
         lw.move(2)
-        rp = ri.link('wiki_rev',rev=lm.revno,path=lm.path)
+        rp = h.linker.link('wiki_rev',rev=lm.revno,path=lm.path)
         w.link_wiki('%s'%lm.revno,href=rp)
         w.text(', ')
         w.a('diff',href=rp+'?cmd=diff')
@@ -363,7 +367,7 @@ def navi(w,h):
         rr = h.wikifile.switch_rev(r)
         if not rr.exist:
             break
-        rp = ri.link('wiki_rev',rev=rr.revno,path=rr.path)
+        rp = h.linker.link('wiki_rev',rev=rr.revno,path=rr.path)
         lw.move(2)
         w.link_wiki('%s'%r,href=rp)
         w.text(', ')
@@ -374,7 +378,6 @@ def navi(w,h):
 @curry2
 @template('Diff')
 def diff_body(w,h,title,ffrom,fto,linediffs):
-    ri = h.ri
     pathheader(w,h)
     w.hr()
     navi(w,h)
@@ -402,7 +405,6 @@ def diff_body(w,h,title,ffrom,fto,linediffs):
 @curry2
 @template('History')
 def history_body(w,h,offset):
-    ri = h.ri
     pathheader(w,h)
     w.hr()
     page_size = 25
@@ -425,7 +427,7 @@ def history_body(w,h,offset):
     
         hrev = hwp.revno
         datetxt = hwp.revision.date.ctime()
-        rp = ri.link('wiki_rev',rev=hwp.revno,path=hwp.path)
+        rp = h.linker.link('wiki_rev',rev=hwp.revno,path=hwp.path)
 
         w.push('h2')
         w.a('Revision %s'%hrev,href=rp)
@@ -444,7 +446,6 @@ def history_body(w,h,offset):
 @curry2
 @template('RecentChanges')
 def recent_body(w,h,offset):
-    ri = h.ri
     pathheader(w,h)
     w.hr()
     page_size = 25
@@ -458,7 +459,7 @@ def recent_body(w,h,offset):
     w.pop()
 
     for ind in range(page_size):
-        rev = ri.head_rev-ind-offset
+        rev = h.head.revno-ind-offset
         if rev<=0:
             break
 
@@ -468,7 +469,7 @@ def recent_body(w,h,offset):
         for i,(hwp,kind) in enumerate(h.changesets(rev)):
             assert hwp
             fname = hwp.path
-            qa = ri.link('wiki_rev',rev=rev,path=hwp.path)
+            qa = h.linker.link('wiki_rev',rev=rev,path=hwp.path)
             dl = qa + '?cmd=diff'
             w.push('h3')
             w.text(kind+': ')
@@ -487,31 +488,28 @@ def recent_body(w,h,offset):
 @curry2
 @template('Sitemap')
 def sitemap_body(w,h):
-    ri = h.ri
     pathheader(w,h)
     w.hr()
     w.push('div',id='main')
     w.insert('h1','SiteMap')
 
-    rev = ri.head.last_paths_changed.revno
+    rev = h.head.last_paths_changed.revno
     lw = ListWriter(w)
 
     for wp in h.sitemap():
         lw.move(len(wp.path.strip('/').split('/')))
-        w.link_wiki(wp.path, href=ri.link('wiki_head',path=wp.path))
+        w.link_wiki(wp.path, href=h.linker.link('wiki_head',path=wp.path))
 
     w.pop()
 
 @curry2
 def sitemaptxt(w,h):
-    ri = h.ri
     for wp in h.sitemap():
-        w.text(ri.full_link('wiki_head',path=wp.path))
+        w.text(h.linker.full_link('wiki_head',path=wp.path))
         w.write('\n')
 
 @curry2
 def atom(w,h):
-    ri = h.ri
     import datetime, md5
     import utils.uuid as uuid
     def getid(s):
@@ -520,27 +518,25 @@ def atom(w,h):
 
     w.writel('<?xml version="1.0" encoding="utf-8"?>')
     w.push('feed',**{'xmlns':'http://www.w3.org/2005/Atom', 'xml:lang':'ja'})
-    w.insert('title',h.ri.hostname)
+    w.insert('title',h.linker.hostname)
     w.insert('subtitle',config.SITE_NAME)
-    w.insert('id','urn:uuid:'+getid(h.ri.full_url_root+'/rss'))
-    w.insert('updated',ri.head.date.isoformat()+'Z')
-    w.insertc('link',href=h.ri.full_url_root)
-    w.insertc('link',rel='self', href=ri.full_link('atom'))
+    w.insert('id','urn:uuid:'+getid(h.linker.full_url_root+'/rss'))
+    w.insert('updated',h.head.date.isoformat()+'Z')
+    w.insertc('link',href=h.linker.full_url_root)
+    w.insertc('link',rel='self', href=h.linker.full_link('atom'))
     w.push('author')
     w.insert('name',config.AUTHOR)
     w.pop()
     for ind in range(page_size):
-        rev = ri.head_rev-ind
+        rev = h.head.revno-ind
         if rev <= 0:
             break
-        for i,(internal_path,hwp,kind) in enumerate(h.changesets(rev)):
-            if not hwp:
-                continue
-            rurl = ri.full_link('wiki_rev',rev=rev, path=path)
+        for i,(hwp,kind) in enumerate(h.changesets(rev)):
+            rurl = h.linker.full_link('wiki_rev',rev=rev, path=path)
             title = 'Revision %s: %s: %s' % (rev,kind,hwp.path)
             pdate = hwp.revision.date
 
-            qa = ri.link('wiki_rev',rev=rev, path=path)
+            qa = h.linker.link('wiki_rev',rev=rev, path=path)
             w.push('entry')
             w.insert('title',title,type='text')
             w.insert('id','urn:uuid:'+getid(rurl))

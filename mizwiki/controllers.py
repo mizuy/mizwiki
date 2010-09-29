@@ -10,10 +10,10 @@ import re
 from sets import Set
 import rfc822, datetime
 
-from mizwiki import misc,lang,views,page
+from mizwiki import misc,lang,views,page,urlmap
 from mizwiki.misc import memorize
 
-from mizwiki import config, htmlwriter, models, svnrep
+from mizwiki import config, htmlwriter, models, svnrep, requestinfo
 from mizwiki.local import local
 
 text_access_denied = 'Access Denied'
@@ -71,11 +71,34 @@ class NotModified(object):
         start_response('304 NOT MODIFIED', [])
         return []
 
+
+class Linker(object):
+    def __init__(self, url_for, url_scheme, hostname, script_name, path_info):
+        self.url_for = url_for
+        self.url_scheme = url_scheme
+        self.hostname = hostname
+        self.script_name = script_name
+        self.path_info = path_info
+
+    @property
+    def full_url_root(self):
+        return self.url_scheme+'://'+self.hostname
+
+    @property
+    def full_tex_url(self):
+        return self.full_url_root + '/cgi/mimetex.cgi'
+
+    def full_link(self, name, **variables):
+        return self.full_url_root + self.script_name + '/' + self.url_for(name, **variables)
+
+    def link(self, name, **variables):
+        return  misc.relpath(self.url_for(name, **variables), self.path_info)
+
+
 re_cmd = re.compile('^cmd_(\w+)$')
 class Controller(object):
-    def __init__(self, ri):
-        self._headers = []
-        self.ri = ri
+    def __init__(self, path_info):
+        self.linker = Linker(mapper.url_for, config.URL_SCHEME, config.HOSTNAME, config.SCRIPT_NAME, path_info)
         self.commands = {}
         for f in dir(self):
             m = re_cmd.match(f)
@@ -83,18 +106,19 @@ class Controller(object):
                 self.commands[m.group(1)] = getattr(self,f)
 
     def __call__(self, environ, start_response):
-        self.path_info = environ.get('PATH_INFO','/').lstrip('/')
-        if not self.ri.req.args.has_key('cmd'):
-            response = self.view()
+        self._headers = []
+        ri = requestinfo.RequestInfo(environ)
+        if not ri.args.has_key('cmd'):
+            response = self.view(ri)
         else:
             try:
-                response = self.commands[self.ri.req.args.get('cmd')]()
+                response = self.commands[ri.args.get('cmd')](ri)
             except KeyError:
                 raise exceptions.Forbidden()
 
         return response(environ, start_response)
 
-    def view(self):
+    def view(self, ri):
         raise exceptions.Forbidden()
 
     def file_wrapper(self, filelike, ext):
@@ -125,7 +149,7 @@ class Controller(object):
             h.append(('Expires',r))
         return h
 
-    def escape_if_clientcache(self, expire=False):
+    def escape_if_clientcache(self, headers, expire=False):
         '''
         check the datetime of client cache, and lastmodified datetime of wiki page
         send back the lastmodified date, and
@@ -133,7 +157,7 @@ class Controller(object):
         '''
         self._headers += self._lastmodified_headers(expire)
         
-        ims = self.ri.req.headers.get('If-Modified-Since')
+        ims = headers.get('If-Modified-Since')
         if not ims:
             return
         try:
@@ -146,17 +170,7 @@ class Controller(object):
 
     @property
     def title(self):
-        return self.path_info
-
-    @property
-    def menu_links(self):
-        return {
-            'History':'?cmd=history',
-            'Attach':'?cmd=attach',
-            'Edit':'?cmd=edit',
-            'Source':"?cmd=viewsrc",
-            'Diff':"?cmd=diff",
-            }
+        return None
 
     @property
     def menu_items(self):
@@ -169,81 +183,45 @@ class Controller(object):
 
     def revision(self, revno):
         "need cache?"
-        print 'Controller.revision'
         return local.repository.get_revision(revno)
 
-
     @property
-    @misc.memorize
-    def hostname(self):
-        if config.HOSTNAME:
-            return config.HOSTNAME
-        hostname = ''
-        if self.req.environ.get('HTTP_HOST'):
-            hostname += self.req.environ['HTTP_HOST']
-        else:
-            hostname += self.req.environ['SERVER_NAME']
+    def head(self):
+        return local.head
 
-            if self.req.environ['wsgi.url_scheme'] == 'https':
-                if self.req.environ['SERVER_PORT'] != '443':
-                    hostname += ':' + self.req.environ['SERVER_PORT']
-                else:
-                    if self.req.environ['SERVER_PORT'] != '80':
-                        hostname += ':' + self.req.environ['SERVER_PORT']
-        return hostname
-        
-    @property
-    @misc.memorize
-    def full_url_root(self):
-        url = self.req.environ['wsgi.url_scheme']+'://'
-        url += self.hostname
-        return url
-
-    @property
-    def full_tex_url(self):
-        return self.full_url_root + '/cgi/mimetex.cgi'
-
-    def full_link(self, name, **variables):
-        return self.full_url_root + quote(self.req.environ.get('SCRIPT_NAME', '')) + '/' + self.url_for(name, **variables)
-
-    def link(self, name, **variables):
-        return  misc.relpath(self.url_for(name, **variables), self.path_info)
 
 class ControllerWikiBase(Controller):
-    def __init__(self, ri, path='FrontPage.wiki', rev=None):
-        super(ControllerWikiBase,self).__init__(ri)
+    def __init__(self, path_info, path='FrontPage.wiki', rev=None):
+        super(ControllerWikiBase,self).__init__(path_info)
         self.path = path
+        self.revno = int(rev) if rev else self.head.revno
         self.basepath = os.path.basename(path)
-        self.wikifile_ = self.revision(int(rev) if rev else ri.head_rev).get_file(self.path)
+        self.wikifile_ = self.revision(self.revno).get_file(self.path)
     wikifile = property(lambda x:x.wikifile_)
 
     @property
-    @memorize
-    def menu_links(self):
-        v = super(ControllerWikiBase,self).menu_links
-        v.update({'Head': self.ri.link('wiki_head',path=self.wikifile.path),
-                  'View': self.ri.link('wiki_head',path=self.wikifile.path)})
-        return v
+    def title(self):
+        return self.path
 
     @property
     def lastmodified_date(self):
         return self.wikifile.lastmodified.date
 
-    def cmd_history(self):
+    def cmd_history(self, ri):
         if not self.wikifile.exist:
             raise exceptions.NotFound()
-        self.escape_if_clientcache(True)
-        offset = self.ri.req.args.get('offset',0,type=int)
+        self.escape_if_clientcache(ri.headers, True)
+        offset = ri.args.get('offset',0,type=int)
         
         return self.renderer_wrapper(views.history_body(offset))
 
-    def cmd_diff(self):
+    def cmd_diff(self, ri):
         if not self.wikifile.exist:
             raise exceptions.NotFound()
 
-        self.escape_if_clientcache(True)
+        self.escape_if_clientcache(ri.headers, True)
 
-        head_rev = self.ri.head_rev
+        head_rev = self.head.revno
         target_rev = self.wikifile.revno
 
         f0 = self.wikifile.switch_rev(target_rev-1)
@@ -265,7 +243,7 @@ class ControllerWikiBase(Controller):
         return self.renderer_wrapper(views.diff_body(title,f0,f1,ld))
 
 class ControllerAttachFile(ControllerWikiBase):
-    def view(self):
+    def view(self, ri):
         if not self.wikifile.exist:
             raise exceptions.NotFound()
 
@@ -284,12 +262,12 @@ class ControllerWikiHead(ControllerWikiBase):
         else:
             return Set(['Edit'])
 
-    def view(self):
+    def view(self, ri):
         if self.wikifile.exist:
-            self.escape_if_clientcache(True)
+            self.escape_if_clientcache(ri.headers, True)
             return self.renderer_wrapper(views.view_head_body())
         else:
-            return self.cmd_edit()
+            return self.cmd_edit(ri)
 
     def _get_paraedit(self, dic):
         if dic.has_key('paraedit_from') and dic.has_key('paraedit_to'):
@@ -297,11 +275,11 @@ class ControllerWikiHead(ControllerWikiBase):
         else:
             return None
 
-    def cmd_edit(self):
+    def cmd_edit(self, ri):
         if not config.EDITABLE or self.wikifile.path in page.locked_pages:
             return self.renderer_wrapper(views.locked_body())
 
-        paraedit = self._get_paraedit(self.ri.req.args)
+        paraedit = self._get_paraedit(ri.args)
 
         wikif = ''
         if self.wikifile.exist:
@@ -313,21 +291,21 @@ class ControllerWikiHead(ControllerWikiBase):
         #if wikif:
         #    wikif = wiki2html.pre_convert_wiki(wikif)
 
-        return self.renderer_wrapper(views.edit_body('',wikif,'','',paraedit,not self.ri.is_valid_host))
+        return self.renderer_wrapper(views.edit_body('',wikif,'','',paraedit,not ri.is_valid_host))
 
-    def cmd_commit(self):
-        form = self.ri.req.form
+    def cmd_commit(self, ri):
+        form = ri.form
 
-        if self.ri.is_spam:
+        if ri.is_spam:
             return self.text_wrapper(text_access_denied)
         if not config.EDITABLE or self.wikifile.path in page.locked_pages:
             return self.renderer_wrapper(views.locked_body())
         
         base_rev = form.get('base_rev',type=int)
-        if not (base_rev<=self.ri.head_rev) and base_rev > 0:
+        if not (base_rev<=self.head.revno) and base_rev > 0:
             raise exceptions.BadRequest()
 
-        paraedit = self._get_paraedit(self.ri.req.form)
+        paraedit = self._get_paraedit(ri.form)
 
         wiki_text = unescape(form.get('text','')).encode('utf-8')
         commitmsg_text = unescape(form.get('commitmsg',''))
@@ -343,7 +321,7 @@ class ControllerWikiHead(ControllerWikiBase):
                                                               base_page,
                                                               wiki_src_full)
 
-        if merged or ispreview or (not self.ri.is_valid_host):
+        if merged or ispreview or (not ri.is_valid_host):
             if paraedit and not merged:
                 edit_src = wiki_text
             else:
@@ -355,69 +333,69 @@ class ControllerWikiHead(ControllerWikiBase):
             return self.renderer_wrapper(views.edit_body(preview_text,edit_src,commitmsg_text,
                                                          message,
                                                          paraedit,
-                                                         not self.ri.is_valid_host))
+                                                         not ri.is_valid_host))
         else:
-            r = self.wikifile.write(full_merged, self.ri.user, commitmsg_text, True)
+            r = self.wikifile.write(full_merged, ri.user, commitmsg_text, True)
             return self.renderer_wrapper(views.commited_body(not not r,
-                                                       base_rev=self.ri.head_rev,
+                                                       base_rev=self.head.revno,
                                                              commited_rev=r))
 
-    def cmd_comment(self):
-        form = self.ri.req.form
+    def cmd_comment(self, ri):
+        form = ri.form
         if not self.wikifile.exist:
             raise exceptions.NotFound()
 
-        if self.ri.is_spam or not config.EDITABLE:
+        if ri.is_spam or not config.EDITABLE:
             return self.text_wrapper(text_access_denied)
 
         author = unescape(form.get('author','AnonymousCorward')).strip()
         message = unescape(form.get('message','')).strip()
         comment_no = form.get('comment_no',type=int)
 
-        if (not self.ri.is_valid_host) or (not message):
+        if (not ri.is_valid_host) or (not message):
             return self.renderer_wrapper(views.edit_comment_body(comment_no,author,message,'',
-                                                           not self.ri.is_valid_host))
+                                                           not ri.is_valid_host))
 
 
-        r = self.wikifile.insert_comment(self.ri.head_rev, self.ri.user,
+        r = self.wikifile.insert_comment(self.head.revno, ri.user,
                                'comment by %s'% (author), comment_no, author, message)
         success = not not r
 
-        return self.renderer_wrapper(views.commited_body(success,base_rev=self.ri.head_rev,commited_rev=r))
+        return self.renderer_wrapper(views.commited_body(success,base_rev=self.head.revno,commited_rev=r))
 
 
-    def page_attach(self):
+    def page_attach(self,ri):
         ms = config.MAX_ATTACH_SIZE / 1024
         exts = ' '.join(list(config.MIME_MAP.keys()))
         message = lang.upload(ms,exts)
 
-        return self.renderer_wrapper(views.attach_body(message,not self.ri.is_valid_host))
+        return self.renderer_wrapper(views.attach_body(message,not ri.is_valid_host))
 
-    def cmd_attach(self):
+    def cmd_attach(self, ri):
         if not self.wikifile.exist:
             raise exceptions.NotFound()
-        return self.page_attach()
+        return self.page_attach(ri)
 
-    def cmd_upload(self):
+    def cmd_upload(self, ri):
         """TODO"""
         raise exceptions.NotFound()
     
         if not self.wikifile.exist:
             raise exceptions.NotFound()
 
-        if self.ri.is_spam or not config.EDITABLE:
+        if ri.is_spam or not config.EDITABLE:
             return self.text_wrapper(text_access_denied)
-        if not self.ri.is_valid_host:
-            return self.page_attach()
+        if not ri.is_valid_host:
+            return self.page_attach(ri)
         
         filename = 'unkown'
         message = 'unkown error'
         success = False
 
-        if not self.ri.req.files:
+        if not ri.files:
             message = 'no file.'
         else:
-            item = self.ri.req.files[0]
+            item = ri.files[0]
             filename = os.path.basename(os.path.normpath(item.filename.replace('\\','/'))).lower()
             ext = os.path.splitext(filename)[1]
             wa = self.wikifile.get_attach(filename)
@@ -430,13 +408,13 @@ class ControllerWikiHead(ControllerWikiBase):
                     message = '%s: too big file.'%filename
                 else:
                     temp.seek(0)
-                    success = not not wa.write(temp.read(), self.ri.user,
+                    success = not not wa.write(temp.read(), ri.user,
                                                'attach file uploaded', ext=='.txt')
                     if not success:
                         message = 'commit error.'
 
         if not success:
-            self.ri.log('cmd_upload: file=%s message=%s'%(filename, message))
+            ri.log('cmd_upload: file=%s message=%s'%(filename, message))
         return self.renderer_wrapper(views.uploaded_body(success,message))
 
 class ControllerWikiRev(ControllerWikiBase):
@@ -446,44 +424,45 @@ class ControllerWikiRev(ControllerWikiBase):
             return Set(['Head','View','Diff'])
         else:
             return Set(['Head'])
+        
+    @property
+    def title(self):
+        return 'Revision %s, %s'%(self.revno, self.path)
 
-    def view(self):
+    def view(self, ri):
         if self.wikifile.exist:
-            self.escape_if_clientcache(False)
+            self.escape_if_clientcache(ri.headers, False)
             return self.renderer_wrapper(views.view_old_body())
         else:
             return self.renderer_wrapper(views.not_found_body())
 
 class ControllerSitemap(Controller):
-    def __init__(self, ri):
-        super(ControllerSitemap,self).__init__(ri)
-
     @property
     def lastmodified_date(self):
-        return self.ri.head.last_paths_changed.date
+        return self.head.last_paths_changed.date
 
-    def view(self):
-        self.escape_if_clientcache(True)
+    def view(self, ri):
+        self.escape_if_clientcache(ri.headers, True)
         return self.renderer_wrapper(views.sitemap_body())
 
     def sitemap(self):
-        rev = self.ri.head.last_paths_changed.revno
+        rev = self.head.last_paths_changed.revno
         for n in self.revision(rev).ls_all:
             yield n
 
 class ControllerSitemapText(ControllerSitemap):
-    def view(self):
-        self.escape_if_clientcache(True)
+    def view(self, ri):
+        self.escape_if_clientcache(ri.headers, True)
         return self.renderer_wrapper(views.sitemaptxt(), CONTENT_TYPE['.txt'])
 
 class ControllerRecentChanges(Controller):
     @property
     def lastmodified_date(self):
-        return self.ri.head.date
+        return self.head.date
 
-    def view(self):
-        self.escape_if_clientcache(True)
-        offset = self.ri.req.args.get('offset',0,type=int)
+    def view(self, ri):
+        self.escape_if_clientcache(ri.headers, True)
+        offset = ri.args.get('offset',0,type=int)
         return self.renderer_wrapper(views.recent_body(offset))
 
     def rev_date(self,revno):
@@ -496,16 +475,16 @@ class ControllerRecentChanges(Controller):
             yield f, kind
 
 class ControllerAtom(ControllerRecentChanges):
-    def view(self):
-        self.escape_if_clientcache(True)
+    def view(self, ri):
+        self.escape_if_clientcache(ri.headers, True)
         return self.renderer_wrapper(views.atom(), CONTENT_TYPE['.atom'])
 
 PWD = os.path.abspath(os.path.dirname(__file__))
 class ControllerFile(Controller):
-    def __init__(self, ri, relative_path):
-        super(ControllerFile,self).__init__(ri)
+    def __init__(self, path_info, relative_path):
+        super(ControllerFile,self).__init__(path_info)
         self.rpath = relative_path
-    def view(self):
+    def view(self, ri):
         ext = os.path.splitext(self.rpath)[1]
         if not ext:
             raise exceptions.Forbidden
@@ -513,9 +492,31 @@ class ControllerFile(Controller):
         return self.file_wrapper(f, ext)
 
 class ControllerTheme(ControllerFile):
-    def __init__(self, ri, path):
-        super(ControllerTheme,self).__init__(ri, os.path.join('theme',path))
+    def __init__(self, path_info, path):
+        super(ControllerTheme,self).__init__(path_info, os.path.join('theme',path))
 
 class ControllerFavicon(ControllerFile):
-    def __init__(self, ri):
-        super(ControllerFavicon,self).__init__(ri,'favicon.ico')
+    def __init__(self, path_info):
+        super(ControllerFavicon,self).__init__(path_info, 'favicon.ico')
+
+
+mapper = urlmap.UrlMap()
+mapper.add_rule('favicon.ico', ControllerFavicon, '^favicon.ico$', "%s")
+mapper.add_rule('theme', ControllerTheme, '^theme/(.+)$', "theme/%s", ["path"])
+mapper.add_rule('recentchanges', ControllerRecentChanges, 'RecentChanges$')
+mapper.add_rule('atom', ControllerAtom, 'RecentChanges/atom.xml$')
+mapper.add_rule('sitemap', ControllerSitemap, 'sitemap$')
+mapper.add_rule('sitemap.txt', ControllerSitemapText, 'sitemap.txt$')
+
+mapper.add_rule('frontpage', ControllerWikiHead, r'$', 'FrontPage.wiki')
+
+mapper.add_rule('wiki_rev', ControllerWikiRev,
+                r'r(\d+)/([\w_/+\-]+\.wiki)$', "r%d/%s",["rev","path"])
+mapper.add_rule('wiki_head', ControllerWikiHead,
+                r'([\w_/+\-]+\.wiki)$', "%s", ["path"])
+
+mapper.add_rule('attach', ControllerAttachFile,
+                r'r(\d+)/(/[\w_./+\-]*)$', "r%d/%s", ["rev","path"])
+mapper.add_rule('attach', ControllerAttachFile,
+                r'([\w_/+\-]+\.[\w_]+)$', "%s",["path"])
+

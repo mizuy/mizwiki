@@ -7,6 +7,9 @@ WWWUSER = _www
 restart:
 	$(APACHE) restart
 
+tests:
+	environ/bin/nosetests
+
 clearcache:
 	rm -rf cache
 	mkdir cache
