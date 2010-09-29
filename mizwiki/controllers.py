@@ -76,19 +76,19 @@ class Linker(object):
         self.url_for = url_for
         self.url_scheme = url_scheme
         self.hostname = hostname
-        self.script_name = script_name
-        self.path_info = path_info
+        self.script_name = script_name.strip('/')
+        self.path_info = path_info.strip('/')
 
     @property
     def full_url_root(self):
-        return self.url_scheme+'://'+self.hostname
+        return self.url_scheme+'://'+self.hostname+'/'
 
     @property
     def full_tex_url(self):
-        return self.full_url_root + '/cgi/mimetex.cgi'
+        return self.full_url_root + 'cgi/mimetex.cgi'
 
     def full_link(self, name, **variables):
-        return self.full_url_root + self.script_name + '/' + self.url_for(name, **variables)
+        return self.full_url_root + (self.script_name + '/').lstrip('/') + self.url_for(name, **variables)
 
     def link(self, name, **variables):
         return  misc.relpath(self.url_for(name, **variables), self.path_info)

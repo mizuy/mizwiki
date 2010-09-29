@@ -4,48 +4,57 @@ import sys,os
 from os import path
 
 ## debug
-debug = True
-editable = True
+DEBUG = True
+EDITABLE = True
 
 ## caches
 # if client cache is older than this revision, always resend the data regardless of lastmodified revision
 # you may update this value when you rewrite invariant sections.
-global_lastmodified_date = None
-use_client_cache = False
+GLOBAL_LASTMODIFIED_DATE = None
+USE_CLIENT_CACHE = False
 
 ## subversion repository
-svn_base = 'private'
-repository_path = '/Users/mizuy/repos_wikicontent'
+SVN_BASE = 'private'
+REPOSITORY_PATH = '/Users/mizuy/repos_wikicontent'
+
+## if None, generate based on environ of requests.
+URL_SCHEME = 'http'
+HOSTNAME = 'localhost:5000'
+SCRIPT_NAME = ''
 
 ## path
-pwd = path.abspath(path.join(path.dirname(__file__),'..'))
-cachedir = path.join(pwd,'cache/')
-cachedb = path.join(cachedir,'cache.db')
-tmp_dir = path.join(pwd,'tmp/')
+PWD = path.abspath(path.join(path.dirname(__file__),'..'))
+TMP_DIR = path.join(PWD,'tmp/')
+#DATABASE = 'sqlite:///:memory:'
+DATABASE = 'sqlite:///'+path.join(PWD,'cache/cache.db')
 
 BLOCK_SIZE = 4096
 
 ## spam filter
-spamblock = False
-rbl_list = [
+SPAMBLOCK = False
+
+"Spam blocker RBL list. see http://en.wikipedia.org/wiki/DNSBL, http://www.rbl.jp/"
+RBL_LIST = [
     'niku.2ch.net',
     'bsb.spamlookup.net',
     'list.dsbl.org',
     ]
-whitelist_ip = [
+"whitelist. only ip allowed"
+WHITELIST = [
     '0::1',
     '::1',
     '127.0.0.1',
     '192.168.0.10',
     '192.168.0.35',
     ]
-blacklist = [
+"blacklist. domain suffix patterns."
+BLACKLIST = [
     '.s05.a012.ap.plala.or.jp',
     ]
 
 ## attach file
-max_attach_size = 1024*1024
-mime_map = {
+MAX_ATTACH_SIZE = 1024*1024
+MIME_MAP = {
     '.css':'text/css',
     '.txt':'text/plain;charset=utf-8',
     '.zip':'application/zip',
@@ -57,10 +66,10 @@ mime_map = {
     }
 
 
-
-site_name = 'Medical Science : Student to Student Wiki'
-description = 'Medical Science : Student to Student Wiki'
-keywords = 'Medicine, Medical Science, subverison, python'
-author = 'mizuy, Tohoku University, school of medicine'
-use_logo = False
-use_copyright_footer = True
+SITE_NAME = 'Private Wiki'
+DESCRIPTION = 'Private Wiki Description'
+KEYWORDS = 'keywords, hogehoge, foo, bar'
+AUTHOR = 'mizuy, Tohoku University, school of medicine'
+LOGO = None
+#LOGO = 'logo.png'
+USE_COPYRIGHT_FOOTER = True
