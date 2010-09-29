@@ -1,6 +1,6 @@
 # -*- coding:utf-8 mode:Python -*-
 
-from cStringIO import StringIO
+from StringIO import StringIO
 from os import path
 import difflib, datetime
 
@@ -172,6 +172,14 @@ class WikiFile(object):
             yield WikiFile.from_svnfile(h)
 
 class WikiPage(WikiFile):
+    @property
+    def text(self):
+        return self.data.decode('utf-8').replace('\r\n','\n')
+
+    def write_text(self, text, username, commitmsg):
+        unicode(data.replace('\r\n','\n'),'utf-8')
+        return self._f.write(data, username, commitmsg, True)
+
     '''
     specialized WikiFile class which handle revisionedfile whose extname is '.wiki'
     '''
@@ -198,8 +206,8 @@ class WikiPage(WikiFile):
     @property
     def xhtml(self):
         r = cachef.get_cachedata(repr((self.path,self.depend_rev)),
-                                 lambda: Wiki2HtmlWeb(self.path, self.page_exist).parse(self.data).decode('utf-8'))
-        return r.encode('utf-8')
+                                 lambda: Wiki2HtmlWeb(self.path, self.page_exist).parse(self.text))
+        return r
 
     def get_preview_xhtml(self, wiki_src):
         '''
@@ -231,28 +239,28 @@ class WikiPage(WikiFile):
         r = cachef.get_cachedata(
             repr(('ndiff',self.path,self.revno)),
             lambda:'\n'.join(l for l in difflib.unified_diff(
-                    self.data.splitlines(),
-                    self.previous.data.splitlines())).decode('utf-8'))
-        return r.encode('utf-8')
+                    self.text.splitlines(),
+                    self.previous.text.splitlines())))
+        return r
 
     def insert_comment(self, head_rev, username, commitmsg, comment_no, author, message):
         if not self.exist:
             return False
         datetext = datetime.datetime.now().ctime()
         outf = StringIO()
-        ret = wiki2html.Comment.insert_comment(self.data,outf,comment_no,author,message,datetext)
+        ret = wiki2html.Comment.insert_comment(self.text,outf,comment_no,author,message,datetext)
         outf.seek(0)
         return self.write(outf.getvalue(), username, commitmsg, True)
 
     def get_paraedit_section(self, paraedit_from, paraedit_to):
         if not self.exist:
             return False
-        return wiki2html.Paraedit.get_paraedit_section(self.data,paraedit_from,paraedit_to)
+        return wiki2html.Paraedit.get_paraedit_section(self.text,paraedit_from,paraedit_to)
 
     def get_paraedit_applied_data(self, paraedit_from, paraedit_to, wiki_src):
         if not self.exist:
             return False
-        return wiki2html.Paraedit.apply_paraedit(self.data,paraedit_from,paraedit_to,wiki_src)
+        return wiki2html.Paraedit.apply_paraedit(self.text,paraedit_from,paraedit_to,wiki_src)
 
 def merge_with_latest(wp, base_page, wiki_src):
     '''

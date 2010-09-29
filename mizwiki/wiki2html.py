@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
-#import io
-from cStringIO import StringIO
+from StringIO import StringIO
 from urllib import quote,urlencode
 import re, string, os
 import md5
@@ -17,6 +16,47 @@ class ConvertInterface(object):
 def trunc_int(minimum,maximum,value):
     assert minimum <= maximum
     return min(max(value,minimum),maximum)
+
+def pretty_text(text):
+    ret = ''
+    text = string.replace(text,'　','  ')
+    insert_ws = False
+    force_insert_ws = False
+
+    r = wikiparser.ReLexer(wikiparser.Lexer(text))
+    r.skipspace()
+    while not r.eof():
+        others,m = r.lex(re_text)
+
+        if others:
+            if insert_ws:
+                ret += ' '
+                force_insert_ws = False
+            insert_ws = True
+            ret += others
+        else:
+            assert m
+            p = m.group(0)
+            if p[0] in ".,'\"-+!@#$%\^&*()|\[]{};:<>/?":
+                if force_insert_ws:
+                    ret += ' '
+                    force_insert_ws = False
+                ret += p
+                insert_ws = False
+            elif p==u'。':
+                ret += '. '
+            elif p==u'、':
+                ret += ', '
+            elif p.isspace():
+                insert_ws = True
+                force_insert_ws = True
+            elif p:
+                if insert_ws:
+                    ret += ' '
+                    force_insert_ws = False
+                ret += p
+                insert_ws = True
+    return ret
 
 re_paraedit = re.compile(r'@@@paraedit:(\d+)@@@')
 class Paraedit:
@@ -269,44 +309,9 @@ class Wiki2Html(wikiparser.WikiParserBase):
     def text_pre(self,text):
         self.w.text(text)
 
-    def text(self,text):
-        text = string.replace(text,'　','  ')
-        insert_ws = False
-        force_insert_ws = False
-            
-        r = wikiparser.ReLexer(wikiparser.Lexer(text))
-        r.skipspace()
-        while not r.eof():
-            others,m = r.lex(re_text)
 
-            if others:
-                if insert_ws:
-                    self.w.text(' ')
-                    force_insert_ws = False
-                insert_ws = True
-                self.w.text(others)
-            else:
-                assert m
-                p = m.group(0)
-                if p[0] in ".,'\"-+!@#$%\^&*()|\[]{};:<>/?":
-                    if force_insert_ws:
-                        self.w.text(' ')
-                        force_insert_ws = False
-                    self.w.text(p)
-                    insert_ws = False
-                elif p=='。':
-                    self.w.text('. ')
-                elif p=='、':
-                    self.w.text(', ')
-                elif p.isspace():
-                    insert_ws = True
-                    force_insert_ws = True
-                elif p:
-                    if insert_ws:
-                        self.w.text(' ')
-                        force_insert_ws = False
-                    self.w.text(p)
-                    insert_ws = True
+    def text(self,text):
+        self.w.text(text)
 
     def command(self,cmdname,params):
         if cmdname=='contents':
@@ -423,7 +428,7 @@ def is_url(n):
 def plugin_tex(w,code):
     qcode = quote('\opaque '+code)
     w.push('div',cls='tex')
-    w.img(config.tex_url +'?'+ qcode,code)
+    w.img(config.TEX_URL +'?'+ qcode,code)
     w.pop()
 
 def plugin_clear(w):
@@ -501,9 +506,3 @@ def plugin_img(w, params, link_url=None):
     w.pop()
 
     return
-
-
-if __name__=='__main__':
-    import sys
-    print(wiki_to_xhtml(ConvertInterface(),sys.stdin.read()))
-

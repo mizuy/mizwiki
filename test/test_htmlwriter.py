@@ -1,5 +1,8 @@
+# encoding:utf-8
 from mizwiki import htmlwriter
-from cStringIO import StringIO
+from nose.tools import *
+
+from StringIO import StringIO
 
 def test_htmlwriter():
     s = StringIO()
@@ -38,3 +41,46 @@ def test_htmlwriter():
     o.finish()
     w.pop()
     w.pop()
+
+    eq_(s.getvalue(), """<body>
+ <body>
+  <a></a>
+  <body>
+   <br/>
+   <title>title</title>
+  </body>
+hoganonahdkkaskdfnhoganona3  <a lalal="asdf" href="http://&amp;&amp;Jlkjasdf.lkjalsdf==++||/lsls;&amp;amp;" id="hogehoge" class="tt">hogehoge</a>
+  <ul>
+   <li>a
+    <ul>
+     <li>bbbb1bbbb2bbbb3</li>
+    </ul>
+   </li>
+   <li>a</li>
+   <li>a</li>
+   <li>
+    <ul>
+     <li>bbbb1bbbb2bbbb3a</li>
+    </ul>
+   </li>
+   <li>a</li>
+  </ul>
+ </body>
+</body>
+""")
+    
+
+def test_unicode():
+    "note: do not use cStringIO.StringIO, which can not handle unicode"
+    s = StringIO()
+    w = htmlwriter.WikiWriter(s)
+
+    w.push('body')
+    w.insert('title',u'タイトル')
+    w.pop()
+
+    eq_(s.getvalue(), u"""<body>
+ <title>タイトル</title>
+</body>
+""")
+    

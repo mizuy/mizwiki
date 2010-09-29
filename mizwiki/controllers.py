@@ -3,7 +3,6 @@ from werkzeug import exceptions
 
 from xml.sax.saxutils import escape,unescape
 
-from cStringIO import StringIO
 import os
 from os import path
 import re
@@ -25,10 +24,11 @@ class IterWriter(object):
     def __init__(self):
         self._l = []
     def write(self, text):
-        self._l.append(str(text))
+        self._l.append(text)
     def __iter__(self):
+        #yield ''.join(self._l).encode('utf-8')
         for f in self._l:
-            yield f
+            yield f.encode('utf-8')
 
 class FileWrapper(object):
     def __init__(self, filelike, ext, headers=[]):
@@ -228,12 +228,12 @@ class ControllerWikiBase(Controller):
     
         if not f0.exist:
             f0lines = []
-            f1lines = f1.data.splitlines()
+            f1lines = f1.text.splitlines()
             title = 'diff: none <==> Revision %s %s' % (f1.revno,self.title)
         else:
             # previous.path == lastmodified.path
-            f0lines = f0.data.splitlines()
-            f1lines = f1.data.splitlines()
+            f0lines = f0.text.splitlines()
+            f1lines = f1.text.splitlines()
             title = 'diff: Revision %s <==> Revision %s: %s' % (f0.revno,f1.revno,self.title)
 
 
@@ -285,7 +285,7 @@ class ControllerWikiHead(ControllerWikiBase):
             if paraedit:
                 wikif = self.wikifile.get_paraedit_section(paraedit[0],paraedit[1])
             else:
-                wikif = self.wikifile.data
+                wikif = self.wikifile.text
 
         #if wikif:
         #    wikif = wiki2html.pre_convert_wiki(wikif)
@@ -334,7 +334,7 @@ class ControllerWikiHead(ControllerWikiBase):
                                                          paraedit,
                                                          not ri.is_valid_host))
         else:
-            r = self.wikifile.write(full_merged, ri.user, commitmsg_text, True)
+            r = self.wikifile.write_text(full_merged, ri.user, commitmsg_text)
             return self.renderer_wrapper(views.commited_body(not not r,
                                                        base_rev=self.head.revno,
                                                              commited_rev=r))

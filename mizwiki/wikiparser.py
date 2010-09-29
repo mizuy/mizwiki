@@ -3,6 +3,7 @@ import re
 
 class Lexer:
     def __init__(self,source):
+        "source's newline must be '\n'. '\r' is regarded as normal charactor"
         self.source = source
         self.len_ = len(self.source)
         self.pos_ = 0
@@ -26,13 +27,13 @@ class Lexer:
             if t<0:
                 self.nextl = self.len_
             else:
-                self.nextl = t+1
+                self.nextl = t
             
         f = self.pos_
         t = self.nextl
         if advance:
-            self.set_pos(t)
-        return self.source[f:t-1]
+            self.set_pos(t+1)
+        return self.source[f:t]
 
     def set_pos(self,pos):
         self.pos_ = pos
@@ -42,7 +43,7 @@ class Lexer:
         return self.source.startswith(prefix,self.pos_)
 
     def skipspace(self):
-        while not self.eof and self.source[self.pos_].isspace():
+        while not self.eof() and self.source[self.pos_].isspace():
             self.skip(1)
 
     def skipline(self):
@@ -552,7 +553,7 @@ re_line = re.compile(r'''
       | (?P<wikiname>[\.\w\-+_][\.\w\-+_/\s]*)?(?P<aname>\#[_a-zA-Z0-9]+)?
     )
   \]\]
-''',re.VERBOSE)
+''',(re.VERBOSE|re.U))
 
 def parse_line(lexer, doci, enable_footnote, within_footnote=False):
     def gg(m,i):

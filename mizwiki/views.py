@@ -44,7 +44,7 @@ def footer(w,h):
     w.push('div',id='footer')
     if config.USE_COPYRIGHT_FOOTER:
         w.push('p',cls='copyright')
-        w.text('Copyright (c) 2010 tmedic.org Permission is granted to copy, distribute and/or modify this document under the terms of the GNU Free Documentation License, Version 1.2 or any later version published by the Free Software Foundation; with no Invariant Sections, no Front-Cover Texts, and no Back-Cover Texts.A copy of the license is included in the section entitled ')
+        w.text('Copyright (c) 2010 tmedic.org Permission is granted to copy, distribute and/or modify this document under the terms of the GNU Free Documentation License, Version 1.2 or any later version published by the Free Software Foundation; with no Invariant Sections, no Front-Cover Texts, and no Back-Cover Texts.A copy of the license is included in the section entitled')
         w.a("GNU Free Documentation License",href=h.linker.link('wiki_head',path='GNU_Free_Documentation_License.wiki'))
         w.text('.')
         w.pop()
@@ -132,6 +132,7 @@ def pathheader(w,h):
     
 def content(w,h):
     w.push('div', id='main')
+    print repr(h.wikifile.xhtml)
     w.write(h.wikifile.xhtml)
     w.pop()
 
@@ -179,7 +180,7 @@ def template(title,nobot=False):
 def locked_body(w,h):
     pathheader(w,h)
     w.hr()
-    w.text('このページの編集はロックされています。')
+    w.text(u'このページの編集はロックされています。')
 
 @curry2
 @template('')
@@ -195,8 +196,8 @@ def view_old_body(w,h):
     pathheader(w,h)
     w.hr()
     lmr = h.wikifile.lastmodified.revno
-    w.textl('過去Revision表示モード。この内容は最新ではない可能性があります。')
-    w.link_wiki('最新版を見る',h.linker.link('wiki_head',path=h.wikifile.path))
+    w.textl(u'過去Revision表示モード。この内容は最新ではない可能性があります。')
+    w.link_wiki(u'最新版を見る',h.linker.link('wiki_head',path=h.wikifile.path))
     w.hr()
     navi(w,h)
     w.hr()
@@ -225,20 +226,20 @@ def uploaded_body(w,h,success,message):
     pathheader(w,h)
     w.hr()
     if success:
-        w.insert('p','upload成功')
+        w.insert('p',u'upload成功')
     else:
-        w.insert('p','upload失敗')
+        w.insert('p',u'upload失敗')
         w.insert('p',message)
     w.insert('p','Path: %s'%h.wikifile.path)
-    w.a('ページへ行く',href=h.basepath)
+    w.a(u'ページへ行く',href=h.basepath)
 
 @curry2
 @template('Not Found',True)
 def notfound_body(w,h):
     pathheader(w,h)
     w.hr()
-    w.insert('p','このRevisionにこのページは存在しません。')
-    w.a('現在のページを見にいく or 編集する',href=h.linker.link('wiki_head',path=h.wikifile.path))
+    w.insert('p',u'このRevisionにこのページは存在しません。')
+    w.a(u'現在のページを見にいく or 編集する',href=h.linker.link('wiki_head',path=h.wikifile.path))
 
 @curry2
 @template('Commited',True)
@@ -246,10 +247,10 @@ def commited_body(w,h,success,base_rev,commited_rev):
     pathheader(w,h)
     w.hr()
     if success:
-        w.insert('p','commit成功')
-        w.insert('p','この状態でリロードすると二重投稿になってしまいます。上のバーか、下のリンクから元のページへ飛んで下さい。')
+        w.insert('p',u'commit成功')
+        w.insert('p',u'この状態でリロードすると二重投稿になってしまいます。上のバーか、下のリンクから元のページへ飛んで下さい。')
     else:
-        w.insert('p','commit失敗')
+        w.insert('p',u'commit失敗')
     w.push('p')
     w.text('Path: %s'%h.wikifile.path)
     w.br()
@@ -257,7 +258,7 @@ def commited_body(w,h,success,base_rev,commited_rev):
     w.br()
     w.text('New Revision: %s' % commited_rev)
     w.pop()
-    w.a('ページへ行く',href=h.basepath)
+    w.a(u'ページへ行く',href=h.basepath)
 
 @curry2
 @template('Post Comment',True)
@@ -302,7 +303,7 @@ def edit_body(w,h,preview_text,wiki_text,commitmsg_text,message,paraedit,questio
         w.insertc('input',type='hidden', name='paraedit_to', value=str(paraedit_to))
         
     w.insert('textarea',wiki_text,cls='edit', name='text', cols='70', rows='30')
-    w.text('commit message: (備考)')
+    w.text(u'commit message: (備考)')
     w.insert('textarea',commitmsg_text,cls='commitmsg', name='commitmsg', cols='70', rows='30')
 
     w.push('div',cls='buttons')
@@ -313,12 +314,9 @@ def edit_body(w,h,preview_text,wiki_text,commitmsg_text,message,paraedit,questio
     w.pop()
 
     w.push('p')
-    w.text('Wikiの文法は')
-    w.a('Wiki/Syntax',href=h.linker.link('wiki_head',path='Syntax.wiki'),cls='wiki')
-    w.text('を参照してください。')
-    w.text('大きな編集をする場合は')
-    w.a('Wiki/編集ガイドライン',href=h.linker.link('wiki_head',path='Guideline.wiki'),cls='wiki')
-    w.text('にも目を通して下さい。')
+    w.text(u'Wikiの文法は')
+    w.a(u'Wiki/Syntax',href=h.linker.link('wiki_head',path='Syntax.wiki'),cls='wiki')
+    w.text(u'を参照してください。')
     w.pop()
 
     if preview_text:
@@ -328,10 +326,10 @@ def edit_body(w,h,preview_text,wiki_text,commitmsg_text,message,paraedit,questio
         w.pop()
 
 def navi(w,h):
-    w.link_wiki('通常の表示モードに戻る',h.linker.link('wiki_head',path=h.wikifile.path))
+    w.link_wiki(u'通常の表示モードに戻る',h.linker.link('wiki_head',path=h.wikifile.path))
     w.hr()
     
-    w.text('他Revisionナビゲーション:')
+    w.text(u'他Revisionナビゲーション:')
     
     lw = ListWriter(w)
     lw.move(1)
