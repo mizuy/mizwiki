@@ -1,5 +1,5 @@
 
-import misc
+from mizwiki import misc
 from nose.tools import *
 
 def test_relpath():

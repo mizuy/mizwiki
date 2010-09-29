@@ -1,4 +1,4 @@
-import svnrep
+from mizwiki import svnrep
 from cStringIO import StringIO
 from nose.tools import *
 from datetime import datetime
@@ -56,3 +56,22 @@ def test_repository():
     eq_(rf2.previous, rf1)
     eq_(rf2.created, rf2)
     
+
+def test_crlf():
+    repo = svnrep.SvnRepository(repo_path)
+    rev0 = repo.youngest
+
+    "eol-style settings are ignored."
+    "eol-style = native"
+    rf = rev0.get_file('test_crlf_native.txt')
+    rf = rf.write('HOGE\nHOGE', 'testuser', 'test commit', True)
+    eq_(rf.data, 'HOGE\nHOGE')
+    rf = rf.write('HOGE\r\nHOGE', 'testuser', 'test commit', True)
+    eq_(rf.data, 'HOGE\r\nHOGE')
+
+    "eol-style = not native"
+    rf = rev0.get_file('test_crlf_not_native.txt')
+    rf = rf.write('HOGE\nHOGE', 'testuser', 'test commit', False)
+    eq_(rf.data, 'HOGE\nHOGE')
+    rf = rf.write('HOGE\r\nHOGE', 'testuser', 'test commit', False)
+    eq_(rf.data, 'HOGE\r\nHOGE')

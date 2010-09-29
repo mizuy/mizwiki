@@ -46,6 +46,43 @@ def _calc_local_path(internal_path):
         return i[len(b):].strip('/')
     return None
 
+class Repository(object):
+    def __init__(self, repository_path):
+        self.repository = svnrep.SvnRepository(repository_path)
+    def get_revision(self, revno):
+        return Revision(self.repository, revno)
+    @property
+    def youngest(self):
+        return self.repository.youngest
+
+class Revision(object):
+    def __init__(self, repository, revno):
+        self.repository = repository
+        self.revno = revno
+        self.revision = self.repository.get_revision(self.revno)
+
+    def get_file(self, path):
+        return WikiFile.get(self.repository, self.revno, path)
+
+    @property
+    def ls_all(self):
+        top = self.revision.get_file(config.SVN_BASE.strip('/'))
+        for n in top.ls_all():
+            f = WikiFile.from_svnfile(n)
+            if f:
+                yield f
+
+    @property
+    def date(self):
+        return self.revision.date
+    
+    @property
+    def paths_changed(self):
+        for n,sets in self.revision.paths_changed:
+            f = WikiFile.from_svnfile(n), sets
+            if f:
+                yield f
+        
 
 class WikiFile(object):
     '''
@@ -118,6 +155,7 @@ class WikiFile(object):
         return self._f.open()
 
     def write(self, data, username, commitmsg, istext):
+        #return self._f.write(data.replace('\r\n','\n'), username, commitmsg, istext)
         return self._f.write(data, username, commitmsg, istext)
     
     @property

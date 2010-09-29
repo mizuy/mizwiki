@@ -143,7 +143,7 @@ def template(title,nobot=False):
             ri = h.ri
             xmldec(w)
             w.push('html',**{'xmlns':'http://www.w3.org/1999/xhtml', 'xml:lang':'ja'})
-            htmlheader(w,h,title+': '+h.title,nobot)
+            htmlheader(w,h,(title+': ' if title else '')+h.title,nobot)
             w.push('body')
             
             header(w,h)
@@ -465,28 +465,23 @@ def recent_body(w,h,offset):
         datetxt = h.rev_date(rev).ctime()
         rtitle = 'Revision %s, %s' % (rev,datetxt)
         w.insert('h2',rtitle)
-        for i,(internal_path,hwp,kind) in enumerate(h.changesets(rev)):
-            if hwp:
-                fname = hwp.path
-                qa = ri.link('wiki_rev',rev=rev,path=hwp.path)
-                dl = qa + '?cmd=diff'
-                w.push('h3')
-                w.text(kind+': ')
-                w.a(fname,href=qa)
-                w.text(', ')
-                w.a('diff',href=dl)
-                w.pop()
-                nd = hwp.ndiff
-                if None!=nd:
-                    if nd:
-                        format_ndiff(w,nd)
-                    else:
-                        w.insert('p','no changes')
-            else:
-                w.push('h3')
-                w.text(kind+': ')
-                w.text(internal_path)
-                w.pop()
+        for i,(hwp,kind) in enumerate(h.changesets(rev)):
+            assert hwp
+            fname = hwp.path
+            qa = ri.link('wiki_rev',rev=rev,path=hwp.path)
+            dl = qa + '?cmd=diff'
+            w.push('h3')
+            w.text(kind+': ')
+            w.a(fname,href=qa)
+            w.text(', ')
+            w.a('diff',href=dl)
+            w.pop()
+            nd = hwp.ndiff
+            if None!=nd:
+                if nd:
+                    format_ndiff(w,nd)
+                else:
+                    w.insert('p','no changes')
     w.pop()
 
 @curry2
@@ -510,7 +505,6 @@ def sitemap_body(w,h):
 @curry2
 def sitemaptxt(w,h):
     ri = h.ri
-
     for wp in h.sitemap():
         w.text(ri.full_link('wiki_head',path=wp.path))
         w.write('\n')

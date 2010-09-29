@@ -1,4 +1,4 @@
-import htmlwriter
+from mizwiki import htmlwriter
 from cStringIO import StringIO
 
 def test_htmlwriter():

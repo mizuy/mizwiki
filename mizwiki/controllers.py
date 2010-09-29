@@ -14,6 +14,7 @@ from mizwiki import misc,lang,views,page
 from mizwiki.misc import memorize
 
 from mizwiki import config, htmlwriter, models, svnrep
+from mizwiki.local import local
 
 text_access_denied = 'Access Denied'
 
@@ -75,7 +76,6 @@ class Controller(object):
     def __init__(self, ri):
         self._headers = []
         self.ri = ri
-        self.path_info = self.ri.path_info
         self.commands = {}
         for f in dir(self):
             m = re_cmd.match(f)
@@ -83,6 +83,7 @@ class Controller(object):
                 self.commands[m.group(1)] = getattr(self,f)
 
     def __call__(self, environ, start_response):
+        self.path_info = environ.get('PATH_INFO','/').lstrip('/')
         if not self.ri.req.args.has_key('cmd'):
             response = self.view()
         else:
@@ -145,7 +146,7 @@ class Controller(object):
 
     @property
     def title(self):
-        return self.ri.path_info
+        return self.path_info
 
     @property
     def menu_links(self):
@@ -162,12 +163,58 @@ class Controller(object):
         #Set(['Head','History','Attach','Edit','View','Diff'])
         return Set()
 
+    @property
+    def repository(self):
+        return local.repository
+
+    def revision(self, revno):
+        "need cache?"
+        print 'Controller.revision'
+        return local.repository.get_revision(revno)
+
+
+    @property
+    @misc.memorize
+    def hostname(self):
+        if config.HOSTNAME:
+            return config.HOSTNAME
+        hostname = ''
+        if self.req.environ.get('HTTP_HOST'):
+            hostname += self.req.environ['HTTP_HOST']
+        else:
+            hostname += self.req.environ['SERVER_NAME']
+
+            if self.req.environ['wsgi.url_scheme'] == 'https':
+                if self.req.environ['SERVER_PORT'] != '443':
+                    hostname += ':' + self.req.environ['SERVER_PORT']
+                else:
+                    if self.req.environ['SERVER_PORT'] != '80':
+                        hostname += ':' + self.req.environ['SERVER_PORT']
+        return hostname
+        
+    @property
+    @misc.memorize
+    def full_url_root(self):
+        url = self.req.environ['wsgi.url_scheme']+'://'
+        url += self.hostname
+        return url
+
+    @property
+    def full_tex_url(self):
+        return self.full_url_root + '/cgi/mimetex.cgi'
+
+    def full_link(self, name, **variables):
+        return self.full_url_root + quote(self.req.environ.get('SCRIPT_NAME', '')) + '/' + self.url_for(name, **variables)
+
+    def link(self, name, **variables):
+        return  misc.relpath(self.url_for(name, **variables), self.path_info)
+
 class ControllerWikiBase(Controller):
     def __init__(self, ri, path='FrontPage.wiki', rev=None):
         super(ControllerWikiBase,self).__init__(ri)
         self.path = path
         self.basepath = os.path.basename(path)
-        self.wikifile_ = models.WikiFile.get(self.ri.repo, int(rev) if rev else ri.head_rev, self.path)
+        self.wikifile_ = self.revision(int(rev) if rev else ri.head_rev).get_file(self.path)
     wikifile = property(lambda x:x.wikifile_)
 
     @property
@@ -421,10 +468,8 @@ class ControllerSitemap(Controller):
 
     def sitemap(self):
         rev = self.ri.head.last_paths_changed.revno
-        revision = self.ri.repo.get_revision(rev)
-        top = revision.get_file(config.SVN_BASE.strip('/'))
-        for n in top.ls_all():
-            yield models.WikiFile.from_svnfile(n)
+        for n in self.revision(rev).ls_all:
+            yield n
 
 class ControllerSitemapText(ControllerSitemap):
     def view(self):
@@ -442,15 +487,13 @@ class ControllerRecentChanges(Controller):
         return self.renderer_wrapper(views.recent_body(offset))
 
     def rev_date(self,revno):
-        return self.ri.repo.get_revision(revno).date
+        return self.revision(revno).date
         
     def changesets(self,revno):
-        revision = self.ri.repo.get_revision(revno)
-        for f,sets in revision.paths_changed:
+        for f,sets in self.revision(revno).paths_changed:
             s = sets.change_kind
-            if svnrep.path_change.has_key(s):
-                kind = svnrep.path_change[s]
-            yield f.path,models.WikiFile.from_svnfile(f), kind
+            kind = svnrep.path_change[s]
+            yield f, kind
 
 class ControllerAtom(ControllerRecentChanges):
     def view(self):

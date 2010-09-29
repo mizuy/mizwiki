@@ -7,33 +7,35 @@ from os import path
 
 from mizwiki.hostvalidator import HostValidator
 from mizwiki import config, misc, svnrep
+from mizwiki.local import local
+from mizwiki.mapper import mapper
 
 class RequestInfo:
     def __repr__(self):
         return 'RequestInfo(ip=%s, %s)'%(self._ip,self.path_info)
 
-    def __init__(self, request, url_for):
+    def __init__(self, request):
         "http requests"
         self.req = request
         self.fs = request.args
 
         "svn repository"
-        self.repo = svnrep.SvnRepository(config.REPOSITORY_PATH)
-        self.head = self.repo.youngest
+        self.head = local.repository.youngest
         self.head_rev = self.head.revno
 
         self._logger = request.environ.get('wsgi.errors')
 
-        self.url_for = url_for
         self.path_info = request.environ.get('PATH_INFO','/').lstrip('/')
+        self.url_for = mapper.url_for
 
         "host validation"
-        self._ip = self.req.remote_addr
+        self._ip = self.req.remote_addr or '0.0.0.0'
         self._v = HostValidator(config.RBL_LIST,
                                 config.WHITELIST,
                                 config.BLACKLIST,
                                 config.SPAMBLOCK,
                                 self.log)
+
 
     @property
     @misc.memorize
@@ -70,6 +72,8 @@ class RequestInfo:
 
     def link(self, name, **variables):
         return  misc.relpath(self.url_for(name, **variables), self.path_info)
+
+
 
     @property
     def is_spam(self):

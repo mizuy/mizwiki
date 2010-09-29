@@ -1,4 +1,4 @@
-import urlmap
+from mizwiki import urlmap
 from nose.tools import *
 
 def test_urlmap():

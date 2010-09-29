@@ -48,7 +48,7 @@ def _create_dirs(txn_root, cpath):
         pass
     return True
 
-class SvnRepository:
+class SvnRepository(object):
     def __init__(self, repository_path):
         self.repos_ptr = repos.open(repository_path)
         self.fs_ptr = repos.fs(self.repos_ptr)
@@ -81,7 +81,7 @@ class SvnRepository:
             pass
         return None
 
-class SvnRevision:
+class SvnRevision(object):
     def __init__(self, repository, revno):
         self._repo = repository
         self._revno = revno
@@ -133,7 +133,7 @@ class SvnRevision:
         "the latest revision where paths_changed(file create, rename, or deletion) occured before self.revno"
         return self._repo._last_paths_changed(self.revno)
 
-class SvnFile:
+class SvnFile(object):
     def __init__(self, root, path):
         assert isinstance(root,SvnRevision)
         self._path = _c(path)
