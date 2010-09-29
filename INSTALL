@@ -35,7 +35,7 @@ MacPortsでインストールしたmod_wsgiはデフォルトでは MacPorts の
 % sudo port install apache2
 % sudo port install mod_wsgi
 % sudo port install python26bindings
-% sudo easy_install-2.6 -U sqlobject
+% sudo easy_install-2.6 -U sqlalchemy
 % sudo easy_install-2.6 install werkzeug
 }}}
 

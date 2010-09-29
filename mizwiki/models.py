@@ -6,7 +6,7 @@ import difflib, datetime
 
 import os
 from mizwiki import config, wiki2html, svnrep
-from mizwiki.cache import cached, CacheSQL
+from mizwiki.cache import CacheSQL
 
 class Wiki2HtmlWeb(wiki2html.Wiki2Html):
     def __init__(self, current_path, page_exist):
@@ -247,7 +247,7 @@ class WikiPage(WikiFile):
     def get_paraedit_section(self, paraedit_from, paraedit_to):
         if not self.exist:
             return False
-        return wiki2html.Paraedit.get_paraedit_section(self.data,paraedit_from,paraedit_to)        
+        return wiki2html.Paraedit.get_paraedit_section(self.data,paraedit_from,paraedit_to)
 
     def get_paraedit_applied_data(self, paraedit_from, paraedit_to, wiki_src):
         if not self.exist:
