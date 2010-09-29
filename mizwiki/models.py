@@ -31,9 +31,6 @@ class Wiki2HtmlWeb(wiki2html.Wiki2Html):
         else:
             self.w.link_wikinotfound(label,path+wikianame)
 
-#you must setting the connection before loading wikipage module.
-#import sqlobject as so
-#so.sqlhub.processConnection = so.connectionForURI('sqlite:' + config.cachedb)
 cachef = CacheSQL()
 
 def _internal_path(local_path):
@@ -200,11 +197,12 @@ class WikiPage(WikiFile):
 
     @cached(cachef, '_xhtml_')
     def _get_xhtml(self, path, dr):
-        return Wiki2HtmlWeb(self.path, self.page_exist).parse(self.data)
+        r = Wiki2HtmlWeb(self.path, self.page_exist).parse(self.data)
+        return r.decode('utf-8')
 
     @property
     def xhtml(self):
-        return self._get_xhtml(self.path, self.depend_rev)
+        return self._get_xhtml(self.path, self.depend_rev).encode('utf-8')
 
     def get_preview_xhtml(self, wiki_src):
         '''
@@ -232,13 +230,14 @@ class WikiPage(WikiFile):
     def _get_ndiff(self, path, rev):
         n = self.data
         p = self.previous.data
-        return '\n'.join(l for l in difflib.unified_diff(p.splitlines(),
-                                                         n.splitlines()))
+        r = '\n'.join(l for l in difflib.unified_diff(p.splitlines(),
+                                                      n.splitlines()))
+        return r.decode('utf-8')
     @property
     def ndiff(self):
         if not self.previous:
             return None
-        return self._get_ndiff(self.path, self.revno)
+        return self._get_ndiff(self.path, self.revno).encode('utf-8')
 
     def insert_comment(self, head_rev, username, commitmsg, comment_no, author, message):
         if not self.exist:

@@ -1,8 +1,7 @@
 from sqlalchemy import create_engine
 from werkzeug import ClosingIterator, exceptions
 
-from mizwiki.local import local, local_manager, metadata
-
+from mizwiki.local import local, local_manager, metadata, session
 from mizwiki import config, models, controllers
 
 import re
@@ -12,11 +11,13 @@ class MizWiki(object):
     def __init__(self,repository_path):
         self.repository_path = repository_path
         self.database_engine = create_engine(config.DATABASE, convert_unicode=True)
+        local.application = self
 
     def init_database(self):
         metadata.create_all(self.database_engine)
 
     def __call__(self, environ, start_response):
+        local.application = self
         if not hasattr(local,'repository'):
             local.repository = models.Repository(self.repository_path)
 
@@ -30,7 +31,7 @@ class MizWiki(object):
             if not response:
                 response = exceptions.Forbidden()
 
-            return ClosingIterator(response(environ, start_response), [local_manager.cleanup])
+            return ClosingIterator(response(environ, start_response), [session.remove, local_manager.cleanup])
         except exceptions.HTTPException, e:
             return e(environ, start_response)
 

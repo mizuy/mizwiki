@@ -83,41 +83,40 @@ class CacheFile(Cache):
     finally:
       f.close()
 
-from sqlobject import *
 
-class CacheEntry(SQLObject):
-  key = StringCol(unique=True)
-  value = StringCol()
+from mizwiki.local import metadata, session
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy import Table, Column, String, Boolean, DateTime, Unicode
 
-CacheEntry.createTable(ifNotExists=True)
+Base = declarative_base(metadata=metadata)
+class CacheEntry(Base):
+    query = session.query_property()
+    __tablename__ = 'cacheentries'
+    key = Column(String, primary_key=True)
+    value = Column(Unicode)
 
-def get_one(q):
-  if q.count():
-    return q[0]
-  else:
-    return None
+    def __repr__(self):
+        return '<CacheEntry %s: %s>'%(self.key, self.value)
+
+    def __init__(self, key, value):
+        self.key = key
+        self.value = value
 
 class CacheSQL(Cache):
-  def __init__(self):
-    pass
-  def has(self,key):
-    v = CacheEntry.select(CacheEntry.q.key==key)
-    if v.count():
-      return True
-    return False
+    def has(self,key):
+        return not not CacheEntry.query.get(key)
 
-  def get(self,key):
-    v = CacheEntry.select(CacheEntry.q.key==key)
-    i = get_one(v)
-    if i:
-      return i.value
-    raise KeyError
+    def get(self,key):
+        i = CacheEntry.query.get(key)
+        if i:
+            return i.value
+        else:
+            raise KeyError
 
-  def put(self,key,value):
-    v = CacheEntry.select(CacheEntry.q.key==key)
-    i = get_one(v)
-    if i:
-      i.value = value
-    else:
-      CacheEntry(key=key,value=value)
-
+    def put(self,key,value):
+        i = CacheEntry.query.get(key)
+        if i:
+            i.value = value
+        else:
+            session.add(CacheEntry(key,value))
+            session.commit()
