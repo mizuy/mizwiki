@@ -11,7 +11,6 @@ from sets import Set
 import rfc822, datetime
 
 from mizwiki import misc,lang,views,page,urlmap
-from mizwiki.misc import memorize
 
 from mizwiki import config, htmlwriter, models, svnrep, requestinfo
 from mizwiki.local import local

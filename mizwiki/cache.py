@@ -19,15 +19,6 @@ class Cache(object):
       self.put(key,v)
     return v
 
-
-def cached(cache,notes='_'):
-  def inner(func):
-    def wrapped(*args,**kw):
-      key = str(notes)+repr(args)+repr(kw)
-      return cache.get_cachedata(key,lambda:func(*args,**kw))
-    return wrapped
-  return inner
-
 class CacheMem(Cache):
   def __init__(self):
     self.cachedb = {}

@@ -195,14 +195,11 @@ class WikiPage(WikiFile):
             lmr = 0
         return max(lmr,lpc)
 
-    @cached(cachef, '_xhtml_')
-    def _get_xhtml(self, path, dr):
-        r = Wiki2HtmlWeb(self.path, self.page_exist).parse(self.data)
-        return r.decode('utf-8')
-
     @property
     def xhtml(self):
-        return self._get_xhtml(self.path, self.depend_rev).encode('utf-8')
+        r = cachef.get_cachedata(repr((self.path,self.depend_rev)),
+                                 lambda: Wiki2HtmlWeb(self.path, self.page_exist).parse(self.data).decode('utf-8'))
+        return r.encode('utf-8')
 
     def get_preview_xhtml(self, wiki_src):
         '''
@@ -226,18 +223,17 @@ class WikiPage(WikiFile):
             if r:
                 yield r
 
-    @cached(cachef,'_ndiff')
-    def _get_ndiff(self, path, rev):
-        n = self.data
-        p = self.previous.data
-        r = '\n'.join(l for l in difflib.unified_diff(p.splitlines(),
-                                                      n.splitlines()))
-        return r.decode('utf-8')
     @property
     def ndiff(self):
         if not self.previous:
             return None
-        return self._get_ndiff(self.path, self.revno).encode('utf-8')
+
+        r = cachef.get_cachedata(
+            repr(('ndiff',self.path,self.revno)),
+            lambda:'\n'.join(l for l in difflib.unified_diff(
+                    self.data.splitlines(),
+                    self.previous.data.splitlines())).decode('utf-8'))
+        return r.encode('utf-8')
 
     def insert_comment(self, head_rev, username, commitmsg, comment_no, author, message):
         if not self.exist:

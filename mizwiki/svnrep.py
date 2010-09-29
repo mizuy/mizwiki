@@ -3,7 +3,7 @@
 from svn import fs, core, repos, delta
 import string
 import time, StringIO, datetime
-from misc import memorize
+from misc import memorize_m
 from os import path
 import misc
 
@@ -56,7 +56,7 @@ class SvnRepository(object):
     def __eq__(self, other):
         return other.repos_ptr == self.repos_ptr
 
-    @memorize
+    @memorize_m
     def get_revision(self, revno):
         return SvnRevision(self, revno)
     def get_file(self, revno, filepath):
@@ -70,7 +70,7 @@ class SvnRepository(object):
     def _root(self,revno):
         return fs.revision_root(self.fs_ptr,revno)
 
-    @memorize
+    @memorize_m
     def _last_paths_changed(self, revno):
         "time complexity is O(number of revision), so memorize it to use. see SvnRevision.lat_paths_changed"
         for r in range(revno, 0, -1):
@@ -162,7 +162,7 @@ class SvnFile(object):
         return self._revision.date
 
     @property
-    @memorize
+    @memorize_m
     def kind(self):
         return fs.check_path(self._revision._root, self.path)
 
