@@ -37,7 +37,7 @@ class Wiki2HtmlWeb(wiki2html.Wiki2Html):
 class Wiki2HtmlWebAbsolute(Wiki2HtmlWeb):
     def link_wiki(self,label,wikiname,wikianame):
         label, path = self._make_label(label,wikiname)
-        link = '/'+misc.join(config.SCRIPT_NAME,path)
+        link = '/'+misc.join(config.SCRIPT_NAME, path)
         if self.page_exist(path):
             self.w.link_wiki(label,link+wikianame)
         else:

@@ -6,6 +6,7 @@ WWWUSER = _www
 
 run:
 	./manage.py runserver
+
 initdb:
 	./manage.py initdb
 
@@ -19,10 +20,12 @@ clearcache:
 	rm -rf cache
 	mkdir cache
 	chmod 770 cache
+	chmod g+x tmp
 	chown $(WWWUSER) cache
 	rm -rf tmp
 	mkdir tmp
 	chmod 770 tmp
+	chmod g+s tmp
 	chown $(WWWUSER) tmp
 
 clean:

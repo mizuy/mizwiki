@@ -5,7 +5,6 @@ from urllib import quote,urlencode
 from xml.sax.saxutils import escape
 
 import re, string
-import md5
 import os
 from mizwiki import wikiparser, htmlwriter
 

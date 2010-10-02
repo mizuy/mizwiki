@@ -1,6 +1,10 @@
 from sqlalchemy import create_engine
 from werkzeug import ClosingIterator, exceptions
 
+import os,sys
+root = os.path.join(os.path.dirname(__file__),'..')
+sys.path.insert(0, root)
+
 from mizwiki.local import local, local_manager, metadata, session
 from mizwiki import config, models, controllers
 
@@ -15,6 +19,9 @@ class MizWiki(object):
 
     def init_database(self):
         metadata.create_all(self.database_engine)
+        metadata.reflect(bind=self.database_engine)
+        for table in reversed(metadata.sorted_tables):
+            self.database_engine.execute(table.delete())
 
     def __call__(self, environ, start_response):
         local.application = self
