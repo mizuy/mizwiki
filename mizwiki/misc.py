@@ -29,11 +29,11 @@ def iterdir(dirpath):
         yield '/'.join(parts[:index+1]), p
 
 def file_copy(f,t):
-  while True:
-    chunk = f.read(1024*1024)
-    if not chunk:
-      break
-    t.write(chunk)
+    while True:
+        chunk = f.read(1024*1024)
+        if not chunk:
+            break
+        t.write(chunk)
 
 def read_fs_file(f,maxsize):
     temp = StringIO.StringIO()
@@ -49,98 +49,97 @@ def read_fs_file(f,maxsize):
     return temp
 
 def linediff(fromlines,tolines):
-  f = fromlines
-  t = tolines
-  m = difflib.SequenceMatcher(None, fromlines, tolines)
+    f = fromlines
+    t = tolines
+    m = difflib.SequenceMatcher(None, fromlines, tolines)
 
-  for tag, i1, i2, j1, j2 in m.get_opcodes():
-    fs = f[i1:i2]
-    ts = t[j1:j2]
-    if tag=='equal':
-      for l in fs:
-        yield '',l
-    elif tag=='replace':
-      for l in fs:
-        yield 'del',l
-      for l in ts:
-          yield 'new',l
-    elif tag=='insert':
-      for l in ts:
-        yield 'new',l
-    elif tag=='delete':
-      for l in fs:
-        yield 'del',l
-    else:
-      raise 'unreachale'
+    for tag, i1, i2, j1, j2 in m.get_opcodes():
+        fs = f[i1:i2]
+        ts = t[j1:j2]
+        if tag=='equal':
+            for l in fs:
+                yield '',l
+        elif tag=='replace':
+            for l in fs:
+                yield 'del',l
+            for l in ts:
+                yield 'new',l
+        elif tag=='insert':
+            for l in ts:
+                yield 'new',l
+        elif tag=='delete':
+            for l in fs:
+                yield 'del',l
+        else:
+            raise 'unreachale'
 
 def merge(mydata,olddata,yourdata,label0,label1,label2):
-  '''
-  merge file with diff3 algorithm
-  return code
-  0: succeed without conflict
-  1: conflict
-  2: error
-  '''
-  p0 = _tempfile.mktemp(dir=config.TMP_DIR)
-  p1 = _tempfile.mktemp(dir=config.TMP_DIR)
+    '''
+    merge file with diff3 algorithm
+    return code
+    0: succeed without conflict
+    1: conflict
+    2: error
+    '''
+    p0 = _tempfile.mktemp(dir=config.TMP_DIR)
+    p1 = _tempfile.mktemp(dir=config.TMP_DIR)
 
-  ret = ''
-  rcode = -1
+    ret = ''
+    rcode = -1
 
-  try:
-    f0 = os.fdopen(os.open(p0,os.O_RDWR|os.O_EXCL|os.O_CREAT),'w+b')
-    f1 = os.fdopen(os.open(p1,os.O_RDWR|os.O_EXCL|os.O_CREAT),'w+b')
-    f0.write(mydata)
-    f1.write(olddata)
-    f0.close()
-    f1.close()
+    try:
+        f0 = os.fdopen(os.open(p0,os.O_RDWR|os.O_EXCL|os.O_CREAT),'w+b')
+        f1 = os.fdopen(os.open(p1,os.O_RDWR|os.O_EXCL|os.O_CREAT),'w+b')
+        f0.write(mydata)
+        f1.write(olddata)
+        f0.close()
+        f1.close()
 
-    p = _popen2.Popen3('diff3 -L "%s" -L "%s" -L "%s" -m -E %s %s -'%(label0,label1,label2,p0,p1))
-    p.tochild.write(yourdata)
-    p.tochild.close()
-    ret = p.fromchild.read()
-    p.fromchild.close()
+        p = _popen2.Popen3('diff3 -L "%s" -L "%s" -L "%s" -m -E %s %s -'%(label0,label1,label2,p0,p1))
+        p.tochild.write(yourdata)
+        p.tochild.close()
+        ret = p.fromchild.read()
+        p.fromchild.close()
 
-    rcode = p.wait()/256
-  finally:
-    os.unlink(p0)
-    os.unlink(p1)
+        rcode = p.wait()/256
+    finally:
+        os.unlink(p0)
+        os.unlink(p1)
 
-  return rcode,ret
+    return rcode,ret
 
 def _mkdir(newdir):
-  """works the way a good mkdir should :)
-  - already exists, silently complete
-  - regular file in the way, raise an exception
-  - parent directory(ies) does not exist, make them as well
-  """
-  if os.path.isdir(newdir):
-    pass
-  elif os.path.isfile(newdir):
-    raise OSError("a file with the same name as the desired " \
-                  "dir, '%s', already exists." % newdir)
-  else:
-    head, tail = os.path.split(newdir)
-    if head and not os.path.isdir(head):
-      _mkdir(head)
+    """works the way a good mkdir should :)
+    - already exists, silently complete
+    - regular file in the way, raise an exception
+    - parent directory(ies) does not exist, make them as well
+    """
+    if os.path.isdir(newdir):
+        pass
+    elif os.path.isfile(newdir):
+        raise OSError("a file with the same name as the desired " \
+                          "dir, '%s', already exists." % newdir)
+    else:
+        head, tail = os.path.split(newdir)
+        if head and not os.path.isdir(head):
+            _mkdir(head)
       #print "_mkdir %s" % repr(newdir)
-    if tail:
-      os.mkdir(newdir)
+        if tail:
+            os.mkdir(newdir)
 
 # http://wiki.python.org/moin/PythonDecoratorLibrary#Memoize
 import functools
-
-
-class memorize(object):
+class memoize(object):
     """Decorator that caches a function's return value each time it is called.
     If called later with the same arguments, the cached value is returned, and
     not re-evaluated.
-    for normal function only
     """
     def __init__(self, func):
         self.func = func
         self.cache = {}
+
     def __call__(self, *args):
+        print self.cache
         try:
             return self.cache[args]
         except KeyError:
@@ -151,25 +150,18 @@ class memorize(object):
             # uncachable -- for instance, passing a list as an argument.
             # Better to not cache than to blow up entirely.
             return self.func(*args)
-    def __repr__(self):
-        """Return the function's docstring."""
-        return self.func.__doc__
+        finally:
+            print self.cache
 
-class memorize_m(object):
-    """Decorator that caches a function's return value each time it is called.
-    If called later with the same arguments, the cached value is returned, and
-    not re-evaluated.
-    for instance methods only.
-    """
-    def __init__(self, func):
-        self.func = func
-        self.name = '_cache'+func.__name__
-    def __call__(self, self_, *args):
+    def method_call(self, self_, *args):
         try:
             cache = getattr(self_,self.name)
         except:
+            self.name = '_cache' + self.func.__name__
             cache = {}
             setattr(self_,self.name,cache)
+
+        print getattr(self_,self.name)
         try:
             return cache[args]
         except KeyError:
@@ -178,6 +170,8 @@ class memorize_m(object):
             return value
         except TypeError:
             return self.func(self_,*args)
+        finally:
+            print getattr(self_,self.name)
 
     def __repr__(self):
         """Return the function's docstring."""
@@ -185,7 +179,7 @@ class memorize_m(object):
 
     def __get__(self, obj, objtype):
         """Support instance methods."""
-        return functools.partial(self.__call__, obj)
+        return functools.partial(self.method_call, obj)
 
 def curry(func):
     def inner(*args,**kw):

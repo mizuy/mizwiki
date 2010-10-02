@@ -177,6 +177,10 @@ class WikiFile(object):
             yield WikiFile.from_svnfile(h)
 
 class WikiPage(WikiFile):
+    '''
+    specialized WikiFile class which handle revisionedfile whose extname is '.wiki'
+    '''
+
     @property
     def text(self):
         return self.data.decode('utf-8').replace('\r\n','\n')
@@ -184,9 +188,6 @@ class WikiPage(WikiFile):
     def write_text(self, text, username, commitmsg):
         return self._f.write(text.replace('\r\n','\n').encode('utf-8'), username, commitmsg, True)
 
-    '''
-    specialized WikiFile class which handle revisionedfile whose extname is '.wiki'
-    '''
     @property
     def depend_rev(self):
         '''
@@ -195,7 +196,7 @@ class WikiPage(WikiFile):
         1. the lastmodified date of yourself
         2. the latest revision where paths_changed before yourself
         
-        note: last_pahts_changes's computation complexity is O(number of revisions). memorize it.
+        note: last_pahts_changes's computation complexity is O(number of revisions). memoize it.
         '''
         r = self.repo.get_revision(self.revno)
         lpc = r.last_paths_changed.revno

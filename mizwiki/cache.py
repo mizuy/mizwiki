@@ -1,79 +1,77 @@
-import fcntl, os
-from urllib import quote
-
 class Cache(object):
-  def has(self,key):
-    pass
+    def has(self,key):
+        pass
   
-  def get(self,key):
-    pass
+    def get(self,key):
+        pass
 
-  def put(self,key,value):
-    pass
+    def put(self,key,value):
+        pass
 
-  def get_cachedata(self, key, lazyeval):
-    try:
-      v = self.get(key)
-    except KeyError:
-      v = lazyeval()
-      self.put(key,v)
-    return v
+    def get_cachedata(self, key, lazyeval):
+        try:
+            v = self.get(key)
+        except KeyError:
+            v = lazyeval()
+            self.put(key,v)
+        return v
 
 class CacheMem(Cache):
-  def __init__(self):
-    self.cachedb = {}
+    def __init__(self):
+        self.cachedb = {}
     
-  def has(self,key):
-    return self.cachedb.has_key(key)
+    def has(self,key):
+        return self.cachedb.has_key(key)
   
-  def get(self,key):
-    return self.cachedb[key]
+    def get(self,key):
+        return self.cachedb[key]
 
-  def put(self,key,value):
-    self.cachedb[key]=value
+    def put(self,key,value):
+        self.cachedb[key]=value
 
+import fcntl, os
+from urllib import quote
 
 def escapep(v):
   return quote(v).replace('/','%2F')
 
 class CacheFile(Cache):
-  def __init__(self,cachedir):
-    self.dir_ = cachedir
+    def __init__(self,cachedir):
+        self.dir_ = cachedir
   
-  def has(self,key):
-    k = self.dir_ + escapep(key)
-    return os.path.exists(k)
+    def has(self,key):
+        k = self.dir_ + escapep(key)
+        return os.path.exists(k)
   
-  def get(self,key):
-    k = self.dir_ + escapep(key)
-    if not self.has(key):
-      raise KeyError
+    def get(self,key):
+        k = self.dir_ + escapep(key)
+        if not self.has(key):
+            raise KeyError
 
-    r = ''
-    f = open(k,'rb')
-    try:
-      fcntl.flock(f.fileno(), fcntl.LOCK_SH)
-      try:
-        r = f.read()
-      finally:
-        fcntl.flock(f.fileno(), fcntl.LOCK_UN)
-    finally:
-      f.close()
+        r = ''
+        f = open(k,'rb')
+        try:
+            fcntl.flock(f.fileno(), fcntl.LOCK_SH)
+            try:
+                r = f.read()
+            finally:
+                fcntl.flock(f.fileno(), fcntl.LOCK_UN)
+        finally:
+            f.close()
         
-    return r
+        return r
 
-  def put(self,key,value):
-    k = self.dir_ + escapep(key)
-    f = open(k,'wb')
-    try:
-      fcntl.flock(f.fileno(), fcntl.LOCK_EX)
-      try:
-        f.write(str(value))
-      finally:
-        fcntl.flock(f.fileno(), fcntl.LOCK_UN)
-    finally:
-      f.close()
-
+    def put(self,key,value):
+        k = self.dir_ + escapep(key)
+        f = open(k,'wb')
+        try:
+            fcntl.flock(f.fileno(), fcntl.LOCK_EX)
+            try:
+                f.write(str(value))
+            finally:
+                fcntl.flock(f.fileno(), fcntl.LOCK_UN)
+        finally:
+            f.close()
 
 from mizwiki.local import metadata, session
 from sqlalchemy.ext.declarative import declarative_base

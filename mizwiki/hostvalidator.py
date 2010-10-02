@@ -1,5 +1,5 @@
 import socket
-from mizwiki.misc import memorize_m
+from mizwiki.misc import memoize
 
 def is_in_rbl(ip, rbl_domain):
     '''
@@ -31,11 +31,11 @@ class HostValidator(object):
         self._spamblock = enable_spamblock
         self.log = logger or (lambda x:None)
     
-    @memorize_m
+    @memoize
     def _is_in_whitelist(self, ip):
         return ip in self._whitelist
 
-    @memorize_m
+    @memoize
     def _hostname(self, ip):
         try:
             (hostname,a,b) = socket.gethostbyaddr(ip)
@@ -43,16 +43,16 @@ class HostValidator(object):
             return None
         return hostname
 
-    @memorize_m
+    @memoize
     def _is_in_rbl(self, ip):
         return any(is_in_rbl(ip, rbl) for rbl in self.rbl)
 
-    @memorize_m
+    @memoize
     def _is_in_blacklist(self, ip):
         h = self._hostname()
         return any(h[-len(bl):]==bl for bl in self._blacklist)
 
-    @memorize_m
+    @memoize
     def _has_jp_hostname(self, ip):
         return 'jp' == self._hostname.split('.')[-1]
 

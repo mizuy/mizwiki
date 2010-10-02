@@ -28,7 +28,7 @@ class RequestInfo(BaseRequest):
 
 
     @property
-    @misc.memorize_m
+    @misc.memoize
     def hostname(self):
         hostname = ''
         if self.environ.get('HTTP_HOST'):
