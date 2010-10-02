@@ -132,9 +132,17 @@ def pathheader(w,h):
 
     
 def content(w,h):
-    w.push('div', id='main')
-    w.write(h.wikifile.xhtml)
-    w.pop()
+    if h.sidebar.exist:
+        w.push('div',id='sidebar')
+        w.write(h.sidebar.xhtml_absolute)
+        w.pop()
+        w.push('div', id='main_right')
+        w.write(h.wikifile.xhtml)
+        w.pop()
+    else:
+        w.push('div', id='main')
+        w.write(h.wikifile.xhtml)
+        w.pop()
 
 '''
 public templates

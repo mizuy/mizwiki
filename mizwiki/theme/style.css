@@ -37,7 +37,7 @@ footer;
 
 
 body {
-  background-color: #fffaf0;
+  background-color: #fff;
   color: black;
   text-align: left;
   margin: 0;
@@ -66,10 +66,11 @@ div#navigator form{
 }
 
 div#body{
-  font-size: 90%;
   margin-left: 1em;
   margin-right: 1em;
   margin-bottom: 1em;
+  font-family: monospace;
+  font-size: 10px;
 }
 
 div#pathinfo{
@@ -82,6 +83,33 @@ div#searchbox{
   padding: 0;
 }
 
+div#sidebar{ 
+  float:left;
+  width: 15%;
+  padding:0px;
+  margin:3px;
+  word-break:break-all;
+  overflow:hidden;
+  font-size: 90%;
+}
+
+div#main{
+  margin:0;
+  padding:0;
+}
+div#main_right{
+  margin:0;
+  padding:0;
+  margin-left:16%;
+}
+
+div#footnote{
+  clear: both;
+  margin-top: 2em;
+  border-top: 1px solid black;
+}
+
+/* table*/
 table#twocolumn{ 
   margin: 0;
   padding: 0;
@@ -89,77 +117,16 @@ table#twocolumn{
   border-width: 0;
 }
 td.sidebar{ 
-  background-color: #f6f6f6;
-  width:14em;
+  width:14.5em;
+  background-color: white;
   vertical-align:top;
   border-width: 0;
 }
-div#sidebar{ 
-  width:14em;
-  padding:0px;
-  margin:4px;
-  word-break:break-all;
-  font-size:90%;
-  overflow:hidden;
-  font-family: monospace;
-}
-
-td.marketbar{ 
-  width:30em;
-  background-color: #f6f6f6;
-  vertical-align:top;
-  border-width: 0;
-}
-div#marketbar{ 
-  padding:0px;
-  width:30em;
-  margin:4px;
-  word-break:break-all;
-  font-size:80%;
-  font-family:monospace;
-  overflow:hidden;
-}
-div#marketbar ul{ 
-  margin:0;
-  padding-left: 1em;
-  padding-right: 0em;
-  list-style-type: none;
-}
-div#marketbar li{ 
-  /*margin-left: -0.5em;*/
-  padding: 0;
-  margin: 0;
-}
-div#marketbar a{ 
-  color: black;
-  text-decoration: none;
-}
-
-div#marketbar a.selected{ 
-  color: red;
-  text-decoration: underline;
-}
-
 td.page{
   vertical-align:top;
   border-width: 0;
 }
-div#main{
-  padding:0px;
-  margin: 0 0 0 .5em;
-  font-family: monospace;
-}
 
-div#maindb{
-  padding:0;
-  margin: 0;
-  font-family: monospace;
-}
-
-div#footnote{
-  margin-top: 2em;
-  border-top: 1px solid black;
-}
 
 /*
 footer
@@ -222,10 +189,12 @@ blockquote {
 }
 
 ul {
+  margin: 0 0 0.5em 0;
   margin-left: 0px;
   padding-left: 1.5em;
 }
 ol {
+  margin: 0 0 0.5em 0;
   margin-left: 0px;
   padding-left: 1.5em;
 }

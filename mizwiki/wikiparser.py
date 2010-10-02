@@ -525,9 +525,9 @@ urllabel:  [[(Label:)Link]]
         where Link = URL | WikiName(#aname)
 
 nakedurl:       URL
-''empasis''
-__underline__
-%%delete%%
+' ' ' empthasis ' ' ' 
+___underline___
+%%%delete%%%
 //comment
 
 /+ /+ nest comment +/ +/
@@ -535,14 +535,14 @@ __underline__
 {block}
 '''
 
-re_line = re.compile(r'''
+re_line = re.compile(r"""
 \n | ~
 | <<< | >>>
 | {{{ | }}}
 | /\+
-| ''(?P<empathis>[^\n]+?)''
-| %%(?P<deleteline>[^\n]+?)%%
-| __(?P<underline>[^\n]+?)__
+| '''(?P<empathis>[^\n]+?)'''
+| %%%(?P<deleteline>[^\n]+?)%%%
+| ___(?P<underline>[^\n]+?)___
 | s?https?:\/\/[-_.!~*\'\(\)a-zA-Z0-9;\/?:\@&=+\$,%#]+
 | \(\(
 | \)\)
@@ -555,7 +555,7 @@ re_line = re.compile(r'''
       | (?P<wikiname>[\.\w\-+_][\.\w\-+_/\s]*)?(?P<aname>\#[_a-zA-Z0-9]+)?
     )
   \]\]
-''',(re.VERBOSE|re.U))
+""",(re.VERBOSE|re.U))
 
 def parse_line(lexer, doci, enable_footnote, within_footnote=False):
     def gg(m,i):

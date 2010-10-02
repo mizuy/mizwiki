@@ -15,7 +15,7 @@ class Wiki2HtmlWeb(wiki2html.Wiki2Html):
         self.current_path = os.path.normpath(current_path)
         self.page_exist = page_exist
         
-    def link_wiki(self,label,wikiname,wikianame):
+    def _make_label(self, label, wikiname):
         name = wikiname.replace(' ','_')
         path = os.path.normpath(name)
         if path.startswith('./') or path.startswith('../'):
@@ -26,11 +26,23 @@ class Wiki2HtmlWeb(wiki2html.Wiki2Html):
             label = label.replace('_',' ')
         else:
             label = name
-
+        return label, path
+        
+    def link_wiki(self,label,wikiname,wikianame):
+        label, path = self._make_label(label,wikiname)
         if self.page_exist(path):
             self.w.link_wiki(label,path+wikianame)
         else:
             self.w.link_wikinotfound(label,path+wikianame)
+
+class Wiki2HtmlWebAbsolute(Wiki2HtmlWeb):
+    def link_wiki(self,label,wikiname,wikianame):
+        label, path = self._make_label(label,wikiname)
+        link = '/'+os.path.join(config.SCRIPT_NAME,path)
+        if self.page_exist(path):
+            self.w.link_wiki(label,link+wikianame)
+        else:
+            self.w.link_wikinotfound(label,link+wikianame)
 
 cachef = CacheSQL()
 
@@ -210,9 +222,15 @@ class WikiPage(WikiFile):
 
     @property
     def xhtml(self):
-        r = cachef.get_cachedata(repr((self.path,self.depend_rev)),
-                                 lambda: Wiki2HtmlWeb(self.path, self.page_exist).parse(self.text))
-        return r
+        return cachef.get_cachedata(
+            repr((self.path,self.depend_rev)),
+            lambda: Wiki2HtmlWeb(self.path, self.page_exist).parse(self.text))
+
+    @property
+    def xhtml_absolute(self):
+        return cachef.get_cachedata(
+            repr(('_xhtmlabs_',self.path,self.depend_rev)),
+            lambda: Wiki2HtmlWebAbsolute(self.path, self.page_exist).parse(self.text))
 
     @property
     def wordpress(self):

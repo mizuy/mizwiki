@@ -97,12 +97,15 @@ class Linker(object):
 re_cmd = re.compile('^cmd_(\w+)$')
 class Controller(object):
     def __init__(self, path_info):
+        self.sidebar_ = self.revision(self.head.revno).get_file('sidebar.wiki')
         self.linker = Linker(mapper.url_for, config.URL_SCHEME, config.HOSTNAME, config.SCRIPT_NAME, path_info)
         self.commands = {}
         for f in dir(self):
             m = re_cmd.match(f)
             if m:
                 self.commands[m.group(1)] = getattr(self,f)
+
+    sidebar = property(lambda x:x.sidebar_)
 
     def __call__(self, environ, start_response):
         self._headers = []
@@ -196,6 +199,8 @@ class ControllerWikiBase(Controller):
         self.revno = int(rev) if rev else self.head.revno
         self.basepath = os.path.basename(path)
         self.wikifile_ = self.revision(self.revno).get_file(self.path)
+        self.sidebar_ = self.revision(self.revno).get_file('sidebar.wiki')
+
     wikifile = property(lambda x:x.wikifile_)
 
     @property
