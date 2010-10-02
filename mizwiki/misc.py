@@ -206,3 +206,16 @@ def curry2(func):
         return inner2
     return inner
 
+#import md5
+import sys
+
+if sys.hexversion >= 0x02050000:
+    import hashlib
+    def get_digest(l):
+        m = hashlib.md5()
+        m.update(l)
+        return m.hexdigest()[:8]
+else:
+    import md5
+    def get_digest(l):
+        return md5.new(l).hexdigest()[:8]

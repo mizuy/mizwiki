@@ -49,12 +49,12 @@ class HostValidator(object):
 
     @memoize
     def _is_in_blacklist(self, ip):
-        h = self._hostname()
+        h = self._hostname(ip)
         return any(h[-len(bl):]==bl for bl in self._blacklist)
 
     @memoize
     def _has_jp_hostname(self, ip):
-        return 'jp' == self._hostname.split('.')[-1]
+        return 'jp' == self._hostname(ip).split('.')[-1]
 
     # if spam, rejest anyway
     def is_spam(self, ip):
@@ -68,7 +68,7 @@ class HostValidator(object):
             self.log('is_spam(reject): ip is in rbl: ip = %s'%ip)
             return True
         if self._is_in_blacklist(ip):
-            h = self._hostname()
+            h = self._hostname(ip)
             self.log('is_spam(reject): ip is in blacklist: ip=%s hostname=%s'%(ip,self._hostname(ip)))
             return True
 

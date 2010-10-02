@@ -249,7 +249,6 @@ class ControllerWikiBase(Controller):
             r = max(r, self.sidebar.lastmodified.date)
         return r
 
-
 class ControllerAttachFile(ControllerWikiBase):
     @property
     def lastmodified_date(self):

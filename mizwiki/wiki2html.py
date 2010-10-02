@@ -3,14 +3,12 @@
 from StringIO import StringIO
 from urllib import quote,urlencode
 import re, string, os
-#import md5
-import hashlib
 
 from pygments import highlight
 from pygments.lexers import get_lexer_by_name
 from pygments.formatters import HtmlFormatter
 
-from mizwiki import wikiparser, htmlwriter, config
+from mizwiki import wikiparser, htmlwriter, config, misc
 import mizwiki.plugin_contents as contents
 
 class ConvertInterface(object):
@@ -201,10 +199,7 @@ def pre_convert_wiki(indata):
                 wl(l)
                 continue
             else:
-                "c = md5.new(l).hexdigest()[:8]"
-                m = hashlib.md5()
-                m.update(l)
-                c = m.hexdigest()[:8]
+                c = misc.get_digest(l)
                 wl(l + ' [#a%s]'%c)
                 continue
         wl(l)

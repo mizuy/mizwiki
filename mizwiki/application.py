@@ -30,7 +30,13 @@ class MizWiki(object):
 
         local.head = local.repository.youngest
         try:
-            path_info = environ.get('PATH_INFO','/').strip('/')
+            path_info = environ.get('PATH_INFO','')
+            if path_info == '':
+                raise exceptions.Forbidden()
+            if path_info != '/' and path_info[-1]=='/':
+                raise exceptions.Forbidden()
+
+            path_info = path_info.strip('/')
             if re_invalidchars.search(path_info) != None:
                 raise exceptions.Forbidden()
 
