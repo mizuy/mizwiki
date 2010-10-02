@@ -207,10 +207,6 @@ class ControllerWikiBase(Controller):
     def title(self):
         return self.path
 
-    @property
-    def lastmodified_date(self):
-        return self.wikifile.lastmodified.date
-
     def cmd_history(self, ri):
         if not self.wikifile.exist:
             raise exceptions.NotFound()
@@ -246,7 +242,19 @@ class ControllerWikiBase(Controller):
 
         return self.renderer_wrapper(views.diff_body(title,f0,f1,ld))
 
+    @property
+    def lastmodified_date(self):
+        r = self.wikifile.lastmodified.date
+        if self.sidebar.exist:
+            r = max(r, self.sidebar.lastmodified.date)
+        return r
+
+
 class ControllerAttachFile(ControllerWikiBase):
+    @property
+    def lastmodified_date(self):
+        return self.wikifile.lastmodified.date
+
     def view(self, ri):
         if not self.wikifile.exist:
             raise exceptions.NotFound()

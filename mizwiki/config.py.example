@@ -3,7 +3,6 @@
 import sys,os
 
 ## debug
-DEBUG = True
 EDITABLE = True
 
 ## caches
@@ -20,7 +19,7 @@ REPOSITORY_PATH = '/Users/mizuy/repos_wikicontent'
 URL_SCHEME = 'http'
 HOSTNAME = 'localhost:5000'
 SCRIPT_NAME = ''
-TEX_URL = 'http://localhost:5000/cgi/mimetex.cgi'
+TEX_URL = 'http://localhost/cgi/mimetex.cgi'
 
 ## path
 PWD = os.path.abspath(os.path.join(os.path.dirname(__file__),'..'))
