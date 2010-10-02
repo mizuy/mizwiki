@@ -33,7 +33,7 @@ class FileWrapper(object):
     def __init__(self, filelike, ext, headers=[]):
         if ext not in CONTENT_TYPE.keys():
             raise exceptions.Forbidden()
-        self.headers = [('Content-type',CONTENT_TYPE[ext])]+headers
+        self.headers = [('Content-Type',CONTENT_TYPE[ext])]+headers
         self.f = filelike
     def __call__(self, environ, start_response):
         start_response('200 OK', self.headers)
@@ -44,7 +44,7 @@ class FileWrapper(object):
 
 class RendererWrapper(object):
     def __init__(self, renderer, controller, content_type, headers=[]):
-        self.headers = [('Content-type',content_type)]+headers
+        self.headers = [('Content-Type',content_type)]+headers
         self.r = renderer
         self.h = controller
     def __call__(self, environ, start_response):
@@ -59,7 +59,7 @@ class TextWrapper(object):
         self.headers = headers
         self.text = text
     def __call__(self, environ, start_response):
-        start_response('200 OK', [('Content-type',CONTENT_TYPE['.txt'])]+self.headers)
+        start_response('200 OK', [('Content-Type',CONTENT_TYPE['.txt'])]+self.headers)
         return [self.text]
 
 class NotModified(exceptions.HTTPException):
@@ -254,9 +254,9 @@ class ControllerAttachFile(ControllerWikiBase):
         if not config.MIME_MAP.has_key(self.wikifile.ext):
             raise exceptions.Forbidden()
 
-        self.escape_if_clientcache(ri.headers, True)
+        self.escape_if_clientcache(ri.headers, False)
 
-        return FileWrapper(self.wikifile.open(), config.MIME_MAP[self.wikifile.ext])
+        return self.file_wrapper(self.wikifile.open(), self.wikifile.ext)
 
 class ControllerWikiHead(ControllerWikiBase):
     @property
@@ -386,9 +386,6 @@ class ControllerWikiHead(ControllerWikiBase):
         return self.page_attach(ri)
 
     def cmd_upload(self, ri):
-        """TODO"""
-        raise exceptions.NotFound()
-    
         if not self.wikifile.exist:
             raise exceptions.NotFound()
 
@@ -404,17 +401,18 @@ class ControllerWikiHead(ControllerWikiBase):
         if not ri.files:
             message = 'no file.'
         else:
-            item = ri.files[0]
+            item = ri.files['file']
             filename = os.path.basename(misc.normpath(item.filename.replace('\\','/'))).lower()
             ext = os.path.splitext(filename)[1]
-            wa = self.wikifile.get_attach(filename)
+            path = misc.join(self.wikifile.path,"../"+filename)
+            wa = self.head.get_file(path)
 
             if not config.MIME_MAP.has_key(ext):
                 message = '%s: file type not supported'%filename
             else:
                 temp = misc.read_fs_file(item.stream, config.MAX_ATTACH_SIZE)
                 if not temp:
-                    message = '%s: too big file.'%filename
+                    message = '%s: too big file. maximum attach size = %s'%(filename,config.MAX_ATTACH_SIZE)
                 else:
                     temp.seek(0)
                     success = not not wa.write(temp.read(), ri.user,

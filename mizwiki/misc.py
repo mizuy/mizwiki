@@ -1,5 +1,5 @@
 # -*- coding:utf-8 mode:Python -*-
-
+import cStringIO
 import string, os, re, difflib, itertools
 import popen2 as _popen2, tempfile as _tempfile
 
@@ -53,7 +53,7 @@ def file_copy(f,t):
         t.write(chunk)
 
 def read_fs_file(f,maxsize):
-    temp = StringIO.StringIO()
+    temp = cStringIO.StringIO()
     size = 0
     while True:
         size += 1024

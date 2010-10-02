@@ -62,7 +62,8 @@ class Repository(object):
         return Revision(self.repository, revno)
     @property
     def youngest(self):
-        return self.repository.youngest
+        r = self.repository.youngest.revno
+        return self.get_revision(r)
 
 class Revision(object):
     def __init__(self, repository, revno):
@@ -88,10 +89,13 @@ class Revision(object):
     @property
     def paths_changed(self):
         for n,sets in self.revision.paths_changed:
-            f = WikiFile.from_svnfile(n), sets
+            f = WikiFile.from_svnfile(n)
             if f:
-                yield f
-        
+                yield f,sets
+
+    @property
+    def last_paths_changed(self):
+        return self.revision.last_paths_changed
 
 class WikiFile(object):
     '''
@@ -209,14 +213,10 @@ class WikiPage(WikiFile):
         
         note: last_pahts_changes's computation complexity is O(number of revisions). memoize it.
         '''
+        assert self.exist
         r = self.repo.get_revision(self.revno)
         lpc = r.last_paths_changed.revno
-        if self.exist:
-            lmr = self.lastmodified.revno
-        else:
-            # TODO
-            raise 'error'
-            lmr = 0
+        lmr = self.lastmodified.revno
         return max(lmr,lpc)
 
     @property
