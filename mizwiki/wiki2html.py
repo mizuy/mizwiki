@@ -367,7 +367,7 @@ class Wiki2Html(wikiparser.WikiParserBase):
             self.w.link_external(uri,uri)
     def link_wiki(self,label,wikiname,wikianame):
         name = wikiname.replace(' ','_')
-        path = os.path.normpath(name)
+        path = misc.normpath(name)
         
         if label:
             label = label.replace('_',' ')

@@ -8,7 +8,6 @@ from sets import Set
 
 from htmlwriter import ListWriter
 from misc import curry,curry2
-from os import path
 import misc
 import models
 

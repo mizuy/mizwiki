@@ -2,15 +2,16 @@ from mizwiki import svnrep
 from cStringIO import StringIO
 from nose.tools import *
 from datetime import datetime
-from os import path
+import os
 
 """
 % svnadmin create 'repo_path'
 """
 
-repo_path = path.abspath(path.normpath(path.join(path.dirname(__file__),'testrep')))
+repo_path = os.path.abspath(os.path.normpath(os.path.join(os.path.dirname(__file__),'testrep')))
 
 def test_repository():
+    print repo_path
     repo = svnrep.SvnRepository(repo_path)
     rev0 = repo.youngest
     n = rev0.revno+1
@@ -18,6 +19,7 @@ def test_repository():
 
     "adding new file, check last_paths_changed"
     d_before = datetime.utcnow().replace(microsecond=0)
+
     text = 'Revision No: %03d'%(rev0.revno+1)
     rf1 = rf.write(text, 'testuser', 'test commit')
     rev1 = rf1.revision

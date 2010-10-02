@@ -1,25 +1,24 @@
 # -*- coding:utf-8 mode:Python -*-
 
 from StringIO import StringIO
-from os import path
 import difflib, datetime
 
 import os
-from mizwiki import config, wiki2html, svnrep
+from mizwiki import config, wiki2html, svnrep, misc
 from mizwiki.cache import CacheSQL
 from mizwiki.wiki2wordpress import Wiki2Wordpress
 
 class Wiki2HtmlWeb(wiki2html.Wiki2Html):
     def __init__(self, current_path, page_exist):
         super(Wiki2HtmlWeb, self).__init__()
-        self.current_path = os.path.normpath(current_path)
+        self.current_path = misc.normpath(current_path)
         self.page_exist = page_exist
         
     def _make_label(self, label, wikiname):
         name = wikiname.replace(' ','_')
-        path = os.path.normpath(name)
+        path = misc.normpath(name)
         if path.startswith('./') or path.startswith('../'):
-            path = os.path.normpath(os.path.join(self.current_path, path))
+            path = misc.normpath(misc.join(self.current_path, path))
         #self.add_linkto(path)
         
         if label:
@@ -38,7 +37,7 @@ class Wiki2HtmlWeb(wiki2html.Wiki2Html):
 class Wiki2HtmlWebAbsolute(Wiki2HtmlWeb):
     def link_wiki(self,label,wikiname,wikianame):
         label, path = self._make_label(label,wikiname)
-        link = '/'+os.path.join(config.SCRIPT_NAME,path)
+        link = '/'+misc.join(config.SCRIPT_NAME,path)
         if self.page_exist(path):
             self.w.link_wiki(label,link+wikianame)
         else:
@@ -47,7 +46,7 @@ class Wiki2HtmlWebAbsolute(Wiki2HtmlWeb):
 cachef = CacheSQL()
 
 def _internal_path(local_path):
-    return path.join(config.SVN_BASE,path.normpath(local_path))
+    return misc.join(config.SVN_BASE,misc.normpath(local_path))
 
 def _calc_local_path(internal_path):
     b = config.SVN_BASE.strip('/')
@@ -109,7 +108,7 @@ class WikiFile(object):
         local_path = _calc_local_path(svnfile.path)
         if not local_path:
             return None
-        if path.splitext(svnfile.path)[1]=='.wiki':
+        if os.path.splitext(svnfile.path)[1]=='.wiki':
             return WikiPage(svnfile,local_path)
         else:
             return WikiFile(svnfile,local_path)

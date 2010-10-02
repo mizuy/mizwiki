@@ -4,7 +4,6 @@ from werkzeug import exceptions
 from xml.sax.saxutils import escape,unescape
 
 import os
-from os import path
 import re
 from sets import Set
 import rfc822, datetime
@@ -405,7 +404,7 @@ class ControllerWikiHead(ControllerWikiBase):
             message = 'no file.'
         else:
             item = ri.files[0]
-            filename = os.path.basename(os.path.normpath(item.filename.replace('\\','/'))).lower()
+            filename = os.path.basename(misc.normpath(item.filename.replace('\\','/'))).lower()
             ext = os.path.splitext(filename)[1]
             wa = self.wikifile.get_attach(filename)
 
@@ -502,7 +501,7 @@ class ControllerFile(Controller):
 
 class ControllerTheme(ControllerFile):
     def __init__(self, path_info, path):
-        super(ControllerTheme,self).__init__(path_info, os.path.join('theme',path))
+        super(ControllerTheme,self).__init__(path_info, misc.join('theme',path))
 
 class ControllerFavicon(ControllerFile):
     def __init__(self, path_info):

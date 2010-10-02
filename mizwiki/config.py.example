@@ -1,7 +1,6 @@
 # -*- coding:utf-8 mode:Python -*-
 
 import sys,os
-from os import path
 
 ## debug
 DEBUG = True
@@ -21,12 +20,13 @@ REPOSITORY_PATH = '/Users/mizuy/repos_wikicontent'
 URL_SCHEME = 'http'
 HOSTNAME = 'localhost:5000'
 SCRIPT_NAME = ''
+TEX_URL = 'http://localhost:5000/cgi/mimetex.cgi'
 
 ## path
-PWD = path.abspath(path.join(path.dirname(__file__),'..'))
-TMP_DIR = path.join(PWD,'tmp/')
+PWD = os.path.abspath(os.path.join(os.path.dirname(__file__),'..'))
+TMP_DIR = os.path.join(PWD,'tmp/')
 #DATABASE = 'sqlite:///:memory:'
-DATABASE = 'sqlite:///'+path.join(PWD,'cache/cache.db')
+DATABASE = 'sqlite:///'+os.path.join(PWD,'cache/cache.db')
 
 BLOCK_SIZE = 4096
 

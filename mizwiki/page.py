@@ -1,9 +1,8 @@
 # -*- coding:utf-8 mode:Python -*-
-
-from os import path
+import misc
 
 def _p(a):
-    path.normpath(a)
+    misc.normpath(a)
 
 FrontPage = _p('FrontPage/')
 SideBar = _p('SideBar/')

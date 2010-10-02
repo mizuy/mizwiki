@@ -23,3 +23,17 @@ def test_iterdir():
     eq_(list(misc.iterdir('')), [])
     eq_(list(misc.iterdir('d')), [('d','d')])
     eq_(list(misc.iterdir('a/b/c/d')), [('a','a'),('a/b','b'),('a/b/c','c'),('a/b/c/d','d')])
+
+def test_normpath():
+    eq_(misc.normpath('////'),'')
+    eq_(misc.normpath('.'),'.')
+    eq_(misc.normpath('hoge/hoge'),'hoge/hoge')
+    eq_(misc.normpath('hoge/../hoge'),'hoge')
+    eq_(misc.normpath('../../hoge'),'../../hoge')
+    eq_(misc.normpath('hoge/../../hoge'),'../hoge')
+
+    eq_(misc.normpath('/hoge/hoge/.'),'hoge/hoge')
+
+def test_join():
+    eq_(misc.join('hoge/hoge///','../foo'),'hoge/foo')
+    eq_(misc.join('..','../../foo'),'../../../foo')

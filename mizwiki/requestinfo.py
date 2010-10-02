@@ -3,7 +3,6 @@ from werkzeug import exceptions
 
 from urllib import quote
 from xml.sax.saxutils import escape,unescape
-from os import path
 
 from mizwiki.hostvalidator import HostValidator
 from mizwiki import config, misc, svnrep

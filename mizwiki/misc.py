@@ -2,13 +2,30 @@
 
 import string, os, re, difflib, itertools
 import popen2 as _popen2, tempfile as _tempfile
-from os import path
 
 from mizwiki import config
 
+def normpath(path):
+    path = path.strip(' /')
+    
+    if path in ['','.']:
+        return path
+    
+    parts = filter(lambda x:x not in  ['.',''],path.split('/'))
+    ret = []
+    for p in parts:
+        if p == '..' and (len(ret)>0 and ret[-1] != '..'):
+            ret = ret[:-1]
+        else:
+            ret.append(p)
+    return '/'.join(ret)
+
+def join(a, b):
+    return normpath(a+'/'+b)
+
 def relpath(to, start):
-    s = path.normpath(start).strip('/').split('/')
-    t = path.normpath(to).strip('/').split('/')
+    s = normpath(start).strip('/').split('/')
+    t = normpath(to).strip('/').split('/')
     
     if s==['.']:
         return to

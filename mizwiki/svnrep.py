@@ -1,10 +1,9 @@
 # -*- coding:utf-8 mode:Python -*-
 
 from svn import fs, core, repos, delta
-import string
+import string, os
 import time, StringIO, datetime
 from misc import memoize
-from os import path
 import misc
 
 svn_node_dir = core.svn_node_dir
@@ -23,7 +22,7 @@ def _c(path):
     return core.svn_path_canonicalize(path.strip('/'))
 
 def _create_file(txn_root, cpath):
-    dirpath = path.dirname(cpath)
+    dirpath = os.path.dirname(cpath)
 
     if not _create_dirs(txn_root, dirpath):
         return False
@@ -184,7 +183,7 @@ class SvnFile(object):
         k.sort()
 
         for i in k:
-            yield SvnFile(self._revision, path.join(self.path,i))
+            yield SvnFile(self._revision, misc.join(self.path,i))
 
     def ls_all(self):
         def w_node(node):
@@ -279,6 +278,7 @@ class SvnFile(object):
             r = repos.fs_commit_txn(self._repo.repos_ptr, txn)
         except Exception, a:
             fs.abort_txn(txn)
+            raise
 
         return self.switch_rev(r) if r else None
 
