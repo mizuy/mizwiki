@@ -132,7 +132,7 @@ class WikiParserBase(object):
         pass
 
     ########### Pre ###########
-    def begin_pre(self):
+    def begin_pre(self,option):
         pass
     def end_pre(self):
         pass
@@ -240,8 +240,8 @@ class WikiParserDump(WikiParserBase):
         self.w.write('</p>\n')
 
     ########### Pre ###########
-    def begin_pre(self):
-        self.w.write('<pre>\n')
+    def begin_pre(self,option):
+        self.w.write('<pre class="%s">\n'%option)
     def end_pre(self):
         self.w.write('</pre>\n')
 
@@ -661,7 +661,11 @@ def parse_pre(lexer,doci):
     assert lexer.startswith('{{{')
 
     lexer.skip(3)
-    doci.begin_pre()
+    option = None
+    if lexer.startswith('#'):
+        lexer.skip(1)
+        option = lexer.get_line(True).strip() or None
+    doci.begin_pre(option)
     l = ReLexer(lexer)
     
     while not l.eof():
@@ -673,7 +677,7 @@ def parse_pre(lexer,doci):
         else:
             pt = m.group(0)
             if pt=='\n':
-                doci.text('\n')
+                doci.text_pre('\n')
                 continue
             if pt=='}}}':
                 break

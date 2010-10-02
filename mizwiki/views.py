@@ -20,6 +20,7 @@ def htmlheader(w,h,title,nobot=False):
     w.push('head')
     w.insertc('meta',**{'http-equiv':'content-type', 'content':'text/html; charset=UTF-8'})
     w.insertc('link',rel='stylesheet', href=h.linker.link('theme',path='style.css'), type='text/css')
+    w.insertc('link',rel='stylesheet', href=h.linker.link('theme',path='pygment.css'), type='text/css')
     w.insert('title',text='%s - %s'%(title,config.SITE_NAME))
     w.insertc('meta',**{'http-equiv':'content-language', 'content':'ja'})
     if nobot:

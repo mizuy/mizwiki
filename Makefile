@@ -26,6 +26,9 @@ clean:
 	rm -f mizwiki/*~
 	rm -f mizwiki/*.pyc
 
+mizwiki/theme/pygment.css:
+	pygmentize -S default -f html > mizwiki/theme/pygment.css
+
 prepare:
 	cp mizwiki/config.py mizwiki/config.py.example
 

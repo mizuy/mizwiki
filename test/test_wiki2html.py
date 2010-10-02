@@ -37,3 +37,40 @@ def test_wiki2html():
     eq_(r, result.encode('utf-8'))
     
     
+syntax = [('pre',
+u"""{{{
+hoge
+}}}
+""",
+u"""<pre>
+hoge
+</pre>
+"""),
+
+('pre2', 
+u"""{{{#
+hoge
+}}}
+""",
+u"""<pre>hoge
+</pre>
+"""),
+
+('pre-option', 
+u"""
+{{{#python
+def hoge():
+    return hoge
+}}}
+""",
+u"""<div class="highlight"><pre><span class="k">def</span> <span class="nf">hoge</span><span class="p">():</span>
+    <span class="k">return</span> <span class="n">hoge</span>
+</pre></div>
+""")
+
+]
+def test_syntax():
+    for name, src, result in syntax:
+        r = Wiki2Html().parse(src)
+        eq_(r, result, '%s test failed., src=%s\nexpected=%s\nbut=%s'%(name,src,result,r))
+    

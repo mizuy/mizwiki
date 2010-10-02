@@ -3,8 +3,12 @@
 from StringIO import StringIO
 from urllib import quote,urlencode
 import re, string, os
-import md5
-#import hashlib
+#import md5
+import hashlib
+
+from pygments import highlight
+from pygments.lexers import get_lexer_by_name
+from pygments.formatters import HtmlFormatter
 
 from mizwiki import wikiparser, htmlwriter, config
 import mizwiki.plugin_contents as contents
@@ -197,12 +201,10 @@ def pre_convert_wiki(indata):
                 wl(l)
                 continue
             else:
-                c = md5.new(l).hexdigest()[:8]
-                '''
+                "c = md5.new(l).hexdigest()[:8]"
                 m = hashlib.md5()
                 m.update(l)
                 c = m.hexdigest()[:8]
-                '''
                 wl(l + ' [#a%s]'%c)
                 continue
         wl(l)
@@ -295,20 +297,31 @@ class Wiki2Html(wikiparser.WikiParserBase):
         self.w.pop()
 
     ########### Pre ###########
-    def begin_pre(self):
-        self.w.push('pre')
+    def begin_pre(self,option):
+        self.ptext = ''
+        self.poption = option
     def end_pre(self):
-        self.w.pop()
+        try:
+            l = get_lexer_by_name(self.poption)
+        except:
+            l = None
+
+        if l:
+            self.w.write(highlight(self.ptext, l, HtmlFormatter()))
+        else:
+            self.w.push('pre')
+            self.w.text(self.ptext)
+            #self.w.write('<br/>\n'.join(self.ptext.splitlines()))
+            self.w.pop()
+
+    def text_pre(self,text):
+        self.ptext += text
 
     ########### Inline Elements ###########
     def br(self):
         self.w.br()
     def horizontal_line(self):
         self.w.hr()
-
-    def text_pre(self,text):
-        self.w.text(text)
-
 
     def text(self,text):
         self.w.text(text)

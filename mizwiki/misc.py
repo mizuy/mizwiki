@@ -139,7 +139,6 @@ class memoize(object):
         self.cache = {}
 
     def __call__(self, *args):
-        print self.cache
         try:
             return self.cache[args]
         except KeyError:
@@ -150,8 +149,6 @@ class memoize(object):
             # uncachable -- for instance, passing a list as an argument.
             # Better to not cache than to blow up entirely.
             return self.func(*args)
-        finally:
-            print self.cache
 
     def method_call(self, self_, *args):
         try:
@@ -161,7 +158,6 @@ class memoize(object):
             cache = {}
             setattr(self_,self.name,cache)
 
-        print getattr(self_,self.name)
         try:
             return cache[args]
         except KeyError:
@@ -170,8 +166,6 @@ class memoize(object):
             return value
         except TypeError:
             return self.func(self_,*args)
-        finally:
-            print getattr(self_,self.name)
 
     def __repr__(self):
         """Return the function's docstring."""
