@@ -62,10 +62,10 @@ class TextWrapper(object):
         start_response('200 OK', [('Content-type',CONTENT_TYPE['.txt'])]+self.headers)
         return [self.text]
 
-class NotModified(object):
+class NotModified(exceptions.HTTPException):
     def __init__(self):
         pass
-    def __call__(environ, start_response):
+    def __call__(self, environ, start_response):
         start_response('304 NOT MODIFIED', [])
         return []
 
@@ -126,7 +126,7 @@ class Controller(object):
         return FileWrapper(filelike, ext, self._headers)
 
     def renderer_wrapper(self, renderer, content_type=CONTENT_TYPE['.html']):
-        return RendererWrapper(renderer, self, self._headers, [('Content-Type',content_type)])
+        return RendererWrapper(renderer, self, content_type, self._headers)
 
     def text_wrapper(self, text):
         return TextWrapper(text, self._headers)
@@ -161,12 +161,13 @@ class Controller(object):
         ims = headers.get('If-Modified-Since')
         if not ims:
             return
+
         try:
             ccd = datetime.datetime(*rfc822.parsedate(ims)[:6])
         except:
             return
 
-        if self._lastmodified_date() <= ccd:
+        if self._lastmodified_date <= ccd:
             raise NotModified()
 
     @property
@@ -253,7 +254,7 @@ class ControllerAttachFile(ControllerWikiBase):
         if not config.MIME_MAP.has_key(self.wikifile.ext):
             raise exceptions.Forbidden()
 
-        self.escape_if_clientcache(ri.headers)
+        self.escape_if_clientcache(ri.headers, True)
 
         return FileWrapper(self.wikifile.open(), config.MIME_MAP[self.wikifile.ext])
 
@@ -492,12 +493,19 @@ class ControllerFile(Controller):
     def __init__(self, path_info, relative_path):
         super(ControllerFile,self).__init__(path_info)
         self.rpath = relative_path
+        self.filepath = os.path.join(PWD,self.rpath)
+
     def view(self, ri):
+        self.escape_if_clientcache(ri.headers)
         ext = os.path.splitext(self.rpath)[1]
         if not ext:
             raise exceptions.Forbidden
-        f = open(os.path.join(PWD,self.rpath), 'r')
+        f = open(self.filepath, 'r')
         return self.file_wrapper(f, ext)
+
+    @property
+    def lastmodified_date(self):
+        return datetime.datetime.fromtimestamp(os.path.getmtime(self.filepath))
 
 class ControllerTheme(ControllerFile):
     def __init__(self, path_info, path):

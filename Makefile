@@ -4,6 +4,11 @@ APACHE = /opt/local/apache2/bin/apachectl
 WWWUSER = _www
 # WWWUSER = www-data
 
+run:
+	./manage.py runserver
+initdb:
+	./manage.py initdb
+
 restart:
 	$(APACHE) restart
 

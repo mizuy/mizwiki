@@ -10,7 +10,7 @@ EDITABLE = True
 # if client cache is older than this revision, always resend the data regardless of lastmodified revision
 # you may update this value when you rewrite invariant sections.
 GLOBAL_LASTMODIFIED_DATE = None
-USE_CLIENT_CACHE = False
+USE_CLIENT_CACHE = True
 
 ## subversion repository
 SVN_BASE = 'private'
