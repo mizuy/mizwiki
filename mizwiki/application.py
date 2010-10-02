@@ -5,6 +5,10 @@ import os,sys
 root = os.path.join(os.path.dirname(__file__),'..')
 sys.path.insert(0, root)
 
+activate_this = os.path.join(root, 'environ/bin/activate_this.py')
+if os.path.exists(activate_this):
+    execfile(activate_this, dict(__file__=activate_this))
+
 from mizwiki.local import local, local_manager, metadata, session
 from mizwiki import config, models, controllers
 

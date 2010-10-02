@@ -179,6 +179,12 @@ ScriptAlias /cgi-bin/ /usr/lib/cgi-bin/
 
 *** setup
 
+{{{
+virtualenv environ
+source environ/bin/activate
+pip install -r requirements.txt
+}}}
+
 % virtualenv --python=python2.6 environ
 % source environ/bin/activate
 (environ)% which python
